@@ -169,8 +169,34 @@ you prepare the C4 diagrams correctly, they will show this on their own.
 
 # Task 3. Developing an ER Diagram
 
-Add the ER diagram here. It should reflect the key entities of the
-system, their attributes, and the type of relationships between them.
+**Entities:** User, House, DeviceType, Module, Device, DeviceState,
+TelemetryData, ThresholdRule, Subscription.
+
+**Key relationships:**
+
+- **User — House:** one user has many houses; each house belongs to
+  exactly one user.
+- **House — Device:** one house has many devices; each device belongs
+  to exactly one house.
+- **DeviceType — Module:** one device type (heating/lighting/access/
+  telemetry) has many purchasable module products.
+- **Module — Device:** one module (product) is installed as many
+  physical devices; each device is an instance of exactly one module.
+- **Device — DeviceState:** one device has exactly one current state
+  record (desired vs. actual value) — owned by whichever control
+  service (Heating/Lighting/Access Control) manages that device type.
+- **Device — TelemetryData:** one device generates many telemetry
+  records over time.
+- **House / Device — ThresholdRule:** one house has many threshold
+  rules; a rule is optionally scoped to one specific device, or left
+  unscoped to apply to the whole house.
+- **User — Subscription:** one user has many subscriptions over time
+  (billing/self-service SaaS plan history).
+
+![ER diagram](docs/erd/erd.png)
+
+- PlantUML source: [docs/erd/erd.puml](docs/erd/erd.puml)
+- Rendered image: [docs/erd/erd.png](docs/erd/erd.png)
 
 # Task 4. Creating and Documenting the API
 
