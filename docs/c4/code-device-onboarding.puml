@@ -1,0 +1,46 @@
+@startuml code-device-onboarding
+title Sequence diagram (C4, level 4) - self-service device onboarding\nDevice Management Service
+
+actor Homeowner
+participant "Web/Mobile Client" as Client
+participant "API Gateway\n(YARP)" as Gateway
+participant "API\n(REST controllers)" as Api
+participant "OnboardingHandler" as Onboarding
+participant "Device Gateway\n(protocol adapter)" as DeviceGw
+participant "Device State Manager" as StateMgr
+participant "IDeviceRepository" as Repo
+database "Device Management DB" as Db
+participant "Physical/Partner Device" as Device
+
+Homeowner -> Client: Enter pairing code for new device
+Client -> Gateway: POST /devices/onboard {deviceType, pairingCode}
+Gateway -> Api: Routes request
+Api -> Onboarding: StartOnboarding(homeId, deviceType, pairingCode)
+
+Onboarding -> DeviceGw: NegotiateProtocol(pairingCode, deviceType)
+DeviceGw -> Device: Discovery/handshake over standard protocol
+Device --> DeviceGw: deviceId, capabilities, protocolConfig
+
+alt device unreachable or pairing code invalid
+    DeviceGw --> Onboarding: PairingFailed(reason)
+    Onboarding --> Api: OnboardingResult.Failure(reason)
+    Api --> Gateway: 400 Bad Request
+    Gateway --> Client: Show pairing error
+else pairing succeeds
+    DeviceGw --> Onboarding: PairingResult(deviceId, capabilities, protocolConfig)
+
+    Onboarding -> StateMgr: RegisterDevice(homeId, deviceId, deviceType, protocolConfig)
+    StateMgr -> StateMgr: new Device(homeId, deviceId, deviceType, protocolConfig)
+    StateMgr -> Repo: Save(device)
+    Repo -> Db: INSERT INTO devices (...)
+    Db --> Repo: OK
+    Repo --> StateMgr: device
+    StateMgr --> Onboarding: device
+
+    Onboarding --> Api: OnboardingResult.Success(device)
+    Api --> Gateway: 201 Created {device}
+    Gateway --> Client: Show "device connected"
+    Client --> Homeowner: Device now visible in the app
+end
+
+@enduml

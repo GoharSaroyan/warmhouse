@@ -160,7 +160,12 @@ you prepare the C4 diagrams correctly, they will show this on their own.
 
 **Code diagram**
 
-Add one diagram, or several.
+*Self-service device onboarding (sequence diagram) - Device Management Service*
+
+![Device onboarding sequence diagram](docs/c4/code-device-onboarding.png)
+
+- PlantUML source: [docs/c4/code-device-onboarding.puml](docs/c4/code-device-onboarding.puml)
+- Rendered image: [docs/c4/code-device-onboarding.png](docs/c4/code-device-onboarding.png)
 
 # Task 3. Developing an ER Diagram
 
