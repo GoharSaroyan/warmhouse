@@ -19,10 +19,14 @@ public class DeviceStateManager
     }
 
     public Task<List<Device>> GetDevicesAsync(Guid? houseId, CancellationToken ct = default)
-        => _devices.GetAllAsync(houseId, ct);
+    {
+        return _devices.GetAllAsync(houseId, ct);
+    }
 
     public Task<Device?> GetDeviceAsync(Guid id, CancellationToken ct = default)
-        => _devices.GetByIdAsync(id, ct);
+    {
+        return _devices.GetByIdAsync(id, ct);
+    }
 
     /// <summary>
     /// Registers a new device record. Used both by the direct "create
@@ -58,5 +62,7 @@ public class DeviceStateManager
     }
 
     public Task<bool> DeleteDeviceAsync(Guid id, CancellationToken ct = default)
-        => _devices.DeleteAsync(id, ct);
+    {
+        return _devices.DeleteAsync(id, ct);
+    }
 }

@@ -18,10 +18,14 @@ public class CommandHandler
     }
 
     public Task<List<Device>> GetDevicesAsync(Guid? houseId, CancellationToken ct = default)
-        => _stateManager.GetDevicesAsync(houseId, ct);
+    {
+        return _stateManager.GetDevicesAsync(houseId, ct);
+    }
 
     public Task<Device?> GetDeviceAsync(Guid id, CancellationToken ct = default)
-        => _stateManager.GetDeviceAsync(id, ct);
+    {
+        return _stateManager.GetDeviceAsync(id, ct);
+    }
 
     public async Task<Device> CreateDeviceAsync(DeviceCreateRequest request, CancellationToken ct = default)
     {
@@ -34,8 +38,12 @@ public class CommandHandler
     }
 
     public Task<Device?> UpdateDeviceAsync(Guid id, DeviceUpdateRequest request, CancellationToken ct = default)
-        => _stateManager.UpdateDeviceAsync(id, request.SerialNumber, request.Status, request.HouseId, ct);
+    {
+        return _stateManager.UpdateDeviceAsync(id, request.SerialNumber, request.Status, request.HouseId, ct);
+    }
 
     public Task<bool> DeleteDeviceAsync(Guid id, CancellationToken ct = default)
-        => _stateManager.DeleteDeviceAsync(id, ct);
+    {
+        return _stateManager.DeleteDeviceAsync(id, ct);
+    }
 }
