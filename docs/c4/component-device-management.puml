@@ -1,0 +1,26 @@
+@startuml component-device-management
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_TOP_DOWN()
+
+Container(apiGateway, "API Gateway", "YARP")
+ContainerDb(deviceMgmtDb, "Device Management DB", "PostgreSQL")
+Container(deviceGateway, "Device Gateway", "Protocol adapter service")
+
+Container_Boundary(deviceMgmt, "Device Management Service") {
+  Component(api, "API", "REST controllers", "Exposes device CRUD and onboarding endpoints; validates requests")
+  Component(commandHandler, "Command Handler", "Application service", "Executes create/update/delete/onboard use cases; enforces business rules (e.g. ownership, valid device type)")
+  Component(onboarding, "Onboarding Handler", "Application service", "Runs the self-service pairing flow: negotiates protocol config with a new device, including partner devices")
+  Component(stateManager, "Device State Manager", "Domain/repository layer", "Owns the in-process device model; reads and persists device records")
+}
+
+Rel(apiGateway, api, "Routes device CRUD / onboarding requests to", "REST")
+Rel(api, commandHandler, "Delegates create/update/delete to")
+Rel(api, onboarding, "Delegates device pairing/onboarding to")
+Rel(commandHandler, stateManager, "Reads/writes device records via")
+Rel(onboarding, stateManager, "Registers newly paired device via")
+Rel(onboarding, deviceGateway, "Negotiates protocol config with", "REST")
+Rel(stateManager, deviceMgmtDb, "Reads/writes", "SQL")
+
+SHOW_LEGEND()
+@enduml

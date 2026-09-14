@@ -1,0 +1,71 @@
+@startuml component-telemetry
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_TOP_DOWN()
+
+title Component diagram (C4, level 3) - "Telemetry" microservice\ninternal structure: clean architecture, layers laid out as folders in one project
+
+Container(apiGateway, "API Gateway", "YARP")
+ContainerQueue(broker, "Message Broker", "RabbitMQ")
+ContainerDb(db, "Telemetry DB", "PostgreSQL", "telemetry_points, threshold_rules")
+Container(deviceGateway, "Device Gateway", "Protocol adapter service")
+
+Container_Boundary(api, "Presentation - Presentation/ folder") {
+  Component(telemetryEndpoints, "TelemetryEndpoints", "IEndpointModule", "POST /api/v1/telemetry (manual/backfill ingest), GET with filters, GET /latest")
+  Component(thresholdEndpoints, "ThresholdEndpoints", "IEndpointModule", "CRUD for threshold rules")
+}
+
+Container_Boundary(application, "Application - Application/ folder") {
+  Component(ingest, "IngestMeasurementHandler", "Handler", "Accepts a manually-posted measurement over HTTP; publishes an event rather than writing to the DB directly, so every source shares one processing path")
+  Component(record, "RecordMeasurementHandler", "Handler", "Persists a measurement and evaluates the threshold rules that apply to it")
+  Component(query, "QueryMeasurementsHandler, GetLatestMeasurementHandler", "Handlers", "Read history and the latest value")
+  Component(rules, "ListThresholdRulesHandler, CreateThresholdRuleHandler, DeleteThresholdRuleHandler", "Handlers", "Manage threshold rules")
+  Component(queriesPort, "ITelemetryQueries", "Port (read side)", "Projects the time series into DTOs")
+}
+
+Container_Boundary(domain, "Domain - Domain/ folder") {
+  Component(point, "TelemetryPoint", "Entity", "A measurement. Measured-at and received-at are tracked separately - a device may buffer readings before it reconnects")
+  Component(rule, "ThresholdRule", "Aggregate root", "gt / gte / lt / lte operator; scoped to one device or the whole home. IsBreachedBy is the domain rule")
+  Component(repoPorts, "ITelemetryPointRepository, IThresholdRuleRepository", "Ports", "Storage contracts")
+}
+
+Container_Boundary(infrastructure, "Infrastructure - Infrastructure/ folder") {
+  Component(dbContext, "TelemetryDbContext", "EF Core", "Index on (device_id, metric, measured_at DESC) to serve 'latest N' reads")
+  Component(repositories, "Repositories", "EF Core", "Implements the domain repository ports")
+  Component(telemetryQueries, "TelemetryQueries", "EF Core", "Implements the read-side port; every query is capped by a limit")
+  Component(consumer, "TelemetryReportedConsumer", "MassTransit", "Broker adapter - the normal ingest path for device data")
+}
+
+Rel(deviceGateway, broker, "Publishes TelemetryReported events for every device reading", "async, pub/sub")
+Rel(apiGateway, telemetryEndpoints, "Routes report/history/manual-ingest requests", "HTTP/JSON")
+Rel(apiGateway, thresholdEndpoints, "Routes threshold-rule requests", "HTTP/JSON")
+
+Rel(telemetryEndpoints, ingest, "Calls")
+Rel(telemetryEndpoints, query, "Calls")
+Rel(thresholdEndpoints, rules, "Calls")
+
+Rel(ingest, broker, "TelemetryReported", "async, pub/sub")
+Rel(broker, consumer, "TelemetryReported", "async, pub/sub")
+Rel(consumer, record, "Delegates to")
+
+Rel(record, point, "Creates")
+Rel(record, rule, "Checks against")
+Rel(record, broker, "TelemetryThresholdBreached", "async, pub/sub")
+
+Rel(record, repoPorts, "Via")
+Rel(query, queriesPort, "Reads via")
+Rel(repositories, repoPorts, "Implements")
+Rel(telemetryQueries, queriesPort, "Implements")
+Rel(repositories, dbContext, "")
+Rel(telemetryQueries, dbContext, "")
+Rel(dbContext, db, "SQL")
+
+note bottom of domain
+  Storing history is what the as-is monolith could not do:
+  it only kept the latest value in the sensors.value column,
+  so neither charts nor rules like "alert if below X" were
+  possible.
+end note
+
+SHOW_LEGEND()
+@enduml

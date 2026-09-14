@@ -137,11 +137,26 @@ you prepare the C4 diagrams correctly, they will show this on their own.
 
 **Container diagram**
 
-Add the diagram.
+![To-be container diagram](docs/c4/container-to-be.png)
+
+- PlantUML source: [docs/c4/container-to-be.puml](docs/c4/container-to-be.puml)
+- Rendered image: [docs/c4/container-to-be.png](docs/c4/container-to-be.png)
 
 **Component diagram**
 
-Add a diagram for each of the identified microservices.
+*Device Management Service*
+
+![Device Management component diagram](docs/c4/component-device-management.png)
+
+- PlantUML source: [docs/c4/component-device-management.puml](docs/c4/component-device-management.puml)
+- Rendered image: [docs/c4/component-device-management.png](docs/c4/component-device-management.png)
+
+*Telemetry Service*
+
+![Telemetry component diagram](docs/c4/component-telemetry.png)
+
+- PlantUML source: [docs/c4/component-telemetry.puml](docs/c4/component-telemetry.puml)
+- Rendered image: [docs/c4/component-telemetry.png](docs/c4/component-telemetry.png)
 
 **Code diagram**
 
