@@ -1,12 +1,18 @@
+# Build context is the repo root (not this folder) - Lighting.Api.csproj
+# references the shared WarmHouse.Contracts project, which lives outside
+# this directory.
+
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS builder
 WORKDIR /src
 
-COPY Lighting.Api.csproj ./
-RUN dotnet restore Lighting.Api.csproj
+COPY src/Services/Lighting/Lighting.Api.csproj src/Services/Lighting/
+COPY src/Common/WarmHouse.Contracts/WarmHouse.Contracts.csproj src/Common/WarmHouse.Contracts/
+RUN dotnet restore src/Services/Lighting/Lighting.Api.csproj
 
-COPY . .
-RUN dotnet publish Lighting.Api.csproj -c Release -o /app/publish --no-restore
+COPY src/Services/Lighting/ src/Services/Lighting/
+COPY src/Common/WarmHouse.Contracts/ src/Common/WarmHouse.Contracts/
+RUN dotnet publish src/Services/Lighting/Lighting.Api.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime

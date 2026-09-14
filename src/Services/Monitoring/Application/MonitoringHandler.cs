@@ -11,10 +11,10 @@ public record ReportStateRequest(Guid HouseId, string Value, string Status);
 
 /// <summary>
 /// Owns letting a homeowner view the current, live state of their home
-/// right now. In the target architecture, ReportAsync is driven by
-/// consuming live state-change events off the Message Broker (see
-/// docs/c4/container-to-be.puml); it's a direct call here until that
-/// broker exists.
+/// right now. ReportAsync is called by DeviceStateChangedConsumer, which
+/// consumes the event the Device Gateway publishes over RabbitMQ (see
+/// docs/c4/container-to-be.puml) - Monitoring never talks to devices or
+/// the control services directly.
 /// </summary>
 public class MonitoringHandler
 {
@@ -32,7 +32,6 @@ public class MonitoringHandler
         return _repository.GetForHouseAsync(houseId, ct);
     }
 
-    // TODO: replace with a Message Broker consumer once it exists.
     public Task<LiveState> ReportAsync(Guid deviceId, ReportStateRequest request, CancellationToken ct = default)
     {
         return _repository.ReportAsync(deviceId, request.HouseId, request.Value, request.Status, ct);

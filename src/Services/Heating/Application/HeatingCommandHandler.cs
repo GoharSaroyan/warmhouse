@@ -1,4 +1,6 @@
 using Heating.Api.Domain;
+using MassTransit;
+using WarmHouse.Contracts;
 
 namespace Heating.Api.Application;
 
@@ -7,24 +9,27 @@ public record HeatingStateResponse(Guid DeviceId, string DesiredValue, string Ac
     public static HeatingStateResponse From(HeatingState s) => new(s.DeviceId, s.DesiredValue, s.ActualValue, s.UpdatedAt);
 }
 
-public record SetHeatingRequest(string DesiredValue);
+public record SetHeatingRequest(Guid HouseId, string DesiredValue);
 
 /// <summary>
 /// Owns turning heating on/off and tracking desired/actual state per
-/// room. In the target architecture, SetDesiredAsync publishes a command
-/// to the Message Broker for the Device Gateway to deliver (see
-/// docs/c4/container-to-be.puml); ReportActualAsync is what a consumed
-/// command-ack event would call. Both are direct/synchronous here until
-/// the broker exists - see the TODO below.
+/// room. SetDesiredAsync records the desired value immediately (so a
+/// GET right after reflects the homeowner's intent) and publishes a
+/// HeatingCommandRequested event for the Device Gateway to deliver over
+/// RabbitMQ (see docs/c4/container-to-be.puml) - it does not wait for
+/// the device to actually respond. ReportActualAsync is called by
+/// HeatingCommandCompletedConsumer once that ack event comes back.
 /// </summary>
 public class HeatingCommandHandler
 {
     private readonly IHeatingStateRepository _repository;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<HeatingCommandHandler> _logger;
 
-    public HeatingCommandHandler(IHeatingStateRepository repository, ILogger<HeatingCommandHandler> logger)
+    public HeatingCommandHandler(IHeatingStateRepository repository, IPublishEndpoint publishEndpoint, ILogger<HeatingCommandHandler> logger)
     {
         _repository = repository;
+        _publishEndpoint = publishEndpoint;
         _logger = logger;
     }
 
@@ -33,13 +38,13 @@ public class HeatingCommandHandler
         return _repository.GetAsync(deviceId, ct);
     }
 
-    // TODO: once the Message Broker exists, publish a "heating command"
-    // event here instead of writing the desired value directly, and let
-    // ReportActualAsync be driven by the consumed command-ack event.
-    public async Task<HeatingState> SetDesiredAsync(Guid deviceId, string desiredValue, CancellationToken ct = default)
+    public async Task<HeatingState> SetDesiredAsync(Guid deviceId, SetHeatingRequest request, CancellationToken ct = default)
     {
-        var state = await _repository.SetDesiredAsync(deviceId, desiredValue, ct);
-        _logger.LogInformation("Heating desired state for device {DeviceId} set to {Value}", deviceId, desiredValue);
+        var state = await _repository.SetDesiredAsync(deviceId, request.DesiredValue, ct);
+
+        await _publishEndpoint.Publish(new HeatingCommandRequested(deviceId, request.HouseId, request.DesiredValue), ct);
+        _logger.LogInformation("Published HeatingCommandRequested for device {DeviceId} -> {Value}", deviceId, request.DesiredValue);
+
         return state;
     }
 

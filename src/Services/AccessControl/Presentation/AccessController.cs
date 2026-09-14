@@ -20,6 +20,9 @@ public class AccessController : ControllerBase
     }
 
     // PUT /api/v1/access/{deviceId} - lock/unlock. Every call is audited.
+    // Publishes AccessCommandRequested to RabbitMQ; the actual value is
+    // updated later, asynchronously, when AccessCommandCompletedConsumer
+    // receives the Device Gateway's ack.
     [HttpPut("{deviceId:guid}")]
     public async Task<ActionResult<AccessStateResponse>> SetDesired(Guid deviceId, [FromBody] SetAccessRequest request, CancellationToken ct)
     {
@@ -28,15 +31,8 @@ public class AccessController : ControllerBase
             return BadRequest(new { error = "desiredValue is required" });
         }
 
-        var state = await _handler.SetDesiredAsync(deviceId, request.DesiredValue, request.Actor, ct);
+        var state = await _handler.SetDesiredAsync(deviceId, request, ct);
         return Ok(AccessStateResponse.From(state));
-    }
-
-    [HttpPost("{deviceId:guid}/ack")]
-    public async Task<ActionResult<AccessStateResponse>> ReportActual(Guid deviceId, [FromBody] SetAccessRequest request, CancellationToken ct)
-    {
-        var state = await _handler.ReportActualAsync(deviceId, request.DesiredValue, ct);
-        return state is null ? NotFound(new { error = "No access state for this device" }) : Ok(AccessStateResponse.From(state));
     }
 
     // GET /api/v1/access/{deviceId}/audit - who locked/unlocked this gate, and when.

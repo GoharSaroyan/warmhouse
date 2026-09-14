@@ -64,6 +64,26 @@ services:
   # api-gateway - see src/Gateway/appsettings.json for the route mapping.
   # ===========================================================================
 
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"
+      # Management UI - http://localhost:15672 (guest/guest)
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
   device-management:
     build:
       context: ./src/Services/DeviceManagement
@@ -83,15 +103,20 @@ services:
 
   heating:
     build:
-      context: ./src/Services/Heating
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services/Heating/Dockerfile
     container_name: heating
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/heating
       - PORT=5002
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
     ports:
       - "5002:5002"
     restart: unless-stopped
@@ -100,15 +125,20 @@ services:
 
   lighting:
     build:
-      context: ./src/Services/Lighting
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services/Lighting/Dockerfile
     container_name: lighting
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/lighting
       - PORT=5003
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
     ports:
       - "5003:5003"
     restart: unless-stopped
@@ -117,15 +147,20 @@ services:
 
   access-control:
     build:
-      context: ./src/Services/AccessControl
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services/AccessControl/Dockerfile
     container_name: access-control
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/access_control
       - PORT=5004
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
     ports:
       - "5004:5004"
     restart: unless-stopped
@@ -134,17 +169,41 @@ services:
 
   monitoring:
     build:
-      context: ./src/Services/Monitoring
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services/Monitoring/Dockerfile
     container_name: monitoring
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/monitoring
       - PORT=5005
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
     ports:
       - "5005:5005"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  device-gateway:
+    build:
+      context: .
+      dockerfile: src/Services/DeviceGateway/Dockerfile
+    container_name: device-gateway
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - PORT=5009
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    ports:
+      - "5009:5009"
     restart: unless-stopped
     networks:
       - smarthome-network

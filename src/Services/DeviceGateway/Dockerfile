@@ -1,4 +1,4 @@
-# Build context is the repo root (not this folder) - Heating.Api.csproj
+# Build context is the repo root (not this folder) - DeviceGateway.Api.csproj
 # references the shared WarmHouse.Contracts project, which lives outside
 # this directory.
 
@@ -6,19 +6,19 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS builder
 WORKDIR /src
 
-COPY src/Services/Heating/Heating.Api.csproj src/Services/Heating/
+COPY src/Services/DeviceGateway/DeviceGateway.Api.csproj src/Services/DeviceGateway/
 COPY src/Common/WarmHouse.Contracts/WarmHouse.Contracts.csproj src/Common/WarmHouse.Contracts/
-RUN dotnet restore src/Services/Heating/Heating.Api.csproj
+RUN dotnet restore src/Services/DeviceGateway/DeviceGateway.Api.csproj
 
-COPY src/Services/Heating/ src/Services/Heating/
+COPY src/Services/DeviceGateway/ src/Services/DeviceGateway/
 COPY src/Common/WarmHouse.Contracts/ src/Common/WarmHouse.Contracts/
-RUN dotnet publish src/Services/Heating/Heating.Api.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish src/Services/DeviceGateway/DeviceGateway.Api.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
 WORKDIR /app
 COPY --from=builder /app/publish .
 
-EXPOSE 5002
+EXPOSE 5009
 
-ENTRYPOINT ["dotnet", "Heating.Api.dll"]
+ENTRYPOINT ["dotnet", "DeviceGateway.Api.dll"]

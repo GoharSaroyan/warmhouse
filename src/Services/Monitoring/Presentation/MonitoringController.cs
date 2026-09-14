@@ -33,8 +33,9 @@ public class MonitoringController : ControllerBase
         return state is null ? NotFound(new { error = "No live state for this device" }) : Ok(LiveStateResponse.From(state));
     }
 
-    // POST /api/v1/monitoring/{deviceId}/report - stands in for consuming
-    // a live state-change event off the Message Broker.
+    // POST /api/v1/monitoring/{deviceId}/report - manual/backfill path,
+    // sharing the same MonitoringHandler.ReportAsync that
+    // DeviceStateChangedConsumer calls for the normal, broker-driven path.
     [HttpPost("{deviceId:guid}/report")]
     public async Task<ActionResult<LiveStateResponse>> Report(Guid deviceId, [FromBody] ReportStateRequest request, CancellationToken ct)
     {

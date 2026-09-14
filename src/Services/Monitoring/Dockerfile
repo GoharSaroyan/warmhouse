@@ -1,12 +1,18 @@
+# Build context is the repo root (not this folder) - Monitoring.Api.csproj
+# references the shared WarmHouse.Contracts project, which lives outside
+# this directory.
+
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS builder
 WORKDIR /src
 
-COPY Monitoring.Api.csproj ./
-RUN dotnet restore Monitoring.Api.csproj
+COPY src/Services/Monitoring/Monitoring.Api.csproj src/Services/Monitoring/
+COPY src/Common/WarmHouse.Contracts/WarmHouse.Contracts.csproj src/Common/WarmHouse.Contracts/
+RUN dotnet restore src/Services/Monitoring/Monitoring.Api.csproj
 
-COPY . .
-RUN dotnet publish Monitoring.Api.csproj -c Release -o /app/publish --no-restore
+COPY src/Services/Monitoring/ src/Services/Monitoring/
+COPY src/Common/WarmHouse.Contracts/ src/Common/WarmHouse.Contracts/
+RUN dotnet publish src/Services/Monitoring/Monitoring.Api.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime

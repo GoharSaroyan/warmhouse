@@ -158,6 +158,13 @@ you prepare the C4 diagrams correctly, they will show this on their own.
 - PlantUML source: [docs/c4/component-telemetry.puml](docs/c4/component-telemetry.puml)
 - Rendered image: [docs/c4/component-telemetry.png](docs/c4/component-telemetry.png)
 
+*Device Gateway*
+
+![Device Gateway component diagram](docs/c4/component-device-gateway.png)
+
+- PlantUML source: [docs/c4/component-device-gateway.puml](docs/c4/component-device-gateway.puml)
+- Rendered image: [docs/c4/component-device-gateway.png](docs/c4/component-device-gateway.png)
+
 **Code diagram**
 
 *Self-service device onboarding (sequence diagram) - Device Management Service*
@@ -202,8 +209,61 @@ TelemetryData, ThresholdRule, Subscription.
 
 ### 1. API type
 
-Specify which type of API you will use for interaction between the
-microservices. Explain your decision.
+**Two API types, depending on who's talking to whom:**
+
+- **REST over HTTPS** for client-facing traffic: the Web/Mobile Client
+  only ever talks to the API Gateway, and the Gateway talks to each
+  microservice, over REST. This is the right fit here because the
+  homeowner is waiting for a response (list my devices, view a report,
+  submit a payment) - synchronous request/response is the natural shape
+  for that interaction, and REST/JSON is the simplest thing that works
+  for a browser/mobile client.
+- **Asynchronous pub/sub over RabbitMQ** for device commands and
+  telemetry between services: Heating/Lighting/Access Control publish
+  commands, the Device Gateway consumes them and relays them to
+  hardware, then publishes telemetry and command-ack/state-change
+  events back for Monitoring and Telemetry to consume independently
+  (see docs/c4/container-to-be.puml). This is the fix for the as-is
+  monolith's core problem from Task 1: everything there was
+  synchronous, so a slow or offline device blocked the request thread
+  that was polling it. With pub/sub, a publisher doesn't wait for, or
+  even know about, its subscribers - it lets new consumers (e.g. a
+  future Notifications service) be added later without touching the
+  services that already exist, and it tolerates devices that are
+  intermittently connected instead of assuming they always answer
+  immediately.
+
+**Message shape:** one event type per domain event, not a generic
+envelope consumers have to branch on. Every publisher and consumer
+references the same shared contracts project
+([src/Common/WarmHouse.Contracts](src/Common/WarmHouse.Contracts)) so
+the message shape can never drift between services. Implemented so far,
+via [MassTransit](https://masstransit.io/) over RabbitMQ:
+
+- `HeatingCommandRequested` / `HeatingCommandCompleted` - Heating
+  Control Service &harr; Device Gateway
+- `LightingCommandRequested` / `LightingCommandCompleted` - Lighting
+  Control Service &harr; Device Gateway
+- `AccessCommandRequested` / `AccessCommandCompleted` - Access Control
+  Service &harr; Device Gateway
+- `DeviceStateChanged` - Device Gateway &rarr; Monitoring Service
+
+**Reliability trade-off we deliberately made:** this implementation
+publishes right after the Npgsql write completes, with no transactional
+outbox and no consumer-side inbox. That's simpler, but it means a crash
+between the database write and the publish can drop an event, and a
+redelivered message isn't guaranteed to be a no-op. A production system
+would add both (write the outgoing event to the same database
+transaction as the state change, and have each consumer record
+processed message ids) - we chose not to here to avoid pulling EF Core
+into services that otherwise use raw Npgsql throughout.
+
+We are not using gRPC or GraphQL here: gRPC would add a schema/tooling
+step that isn't needed for either the browser-facing traffic (REST/JSON
+is simpler and universally supported) or the event traffic (which needs
+pub/sub semantics gRPC doesn't provide on its own); GraphQL solves a
+client-side over/under-fetching problem this system doesn't have, since
+each client screen maps closely to one service's REST resource.
 
 ### 2. API documentation
 

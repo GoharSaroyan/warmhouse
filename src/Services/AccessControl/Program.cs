@@ -7,12 +7,16 @@
 using AccessControl.Api.Application;
 using AccessControl.Api.Domain;
 using AccessControl.Api.Infrastructure;
+using MassTransit;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var databaseUrl = GetEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/access_control");
 var port = GetEnv("PORT", "5004");
+var rabbitMqHost = GetEnv("RABBITMQ_HOST", "localhost");
+var rabbitMqUser = GetEnv("RABBITMQ_USER", "guest");
+var rabbitMqPassword = GetEnv("RABBITMQ_PASSWORD", "guest");
 
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
@@ -20,6 +24,21 @@ builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(ConvertPostgresUrlToC
 builder.Services.AddSingleton<IAccessStateRepository, AccessStateRepository>();
 builder.Services.AddSingleton<IAccessAuditRepository, AccessAuditRepository>();
 builder.Services.AddSingleton<AccessCommandHandler>();
+
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<AccessCommandCompletedConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host(rabbitMqHost, "/", h =>
+        {
+            h.Username(rabbitMqUser);
+            h.Password(rabbitMqPassword);
+        });
+        cfg.ConfigureEndpoints(context);
+    });
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
