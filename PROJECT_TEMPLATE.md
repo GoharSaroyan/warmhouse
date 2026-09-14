@@ -46,6 +46,51 @@ request handling, business logic and data access run in one deployable
 process, and all interaction is synchronous (server calls out to sensors/
 services and waits for the response).
 
+### 3. Domain and bounded context definition
+
+- **Device Management.** Owns the catalog of a home's registered
+  devices — identity, type, location, ownership — plus self-service
+  connection/onboarding of new devices (including partner devices over
+  standard protocols) into that catalog. This is the "sensor CRUD" the
+  monolith already implements, generalized to cover every device type
+  (not just temperature sensors) and to remove the current dependency on
+  a technician site visit.
+- **Heating Control.** Owns turning heating on/off and tracking its
+  desired/actual state per room. Exists today only implicitly, smuggled
+  into a device's generic `status`/`value` fields.
+- **Lighting Control.** Owns turning lights on/off per room. Does not
+  exist in the current monolith — required by the target ecosystem.
+- **Access Control.** Owns locking/unlocking automatic gates. Does not
+  exist today; kept separate from Heating/Lighting Control because of
+  its safety/security requirements.
+- **Telemetry.** Owns ingesting, storing and aggregating device data
+  over time (temperature readings today; other device signals in the
+  target system) for historical analysis and reports. Today this data
+  comes from the external "temperature-api" the monolith polls
+  synchronously, but nothing is aggregated or reported on yet.
+- **Monitoring.** Owns letting a homeowner view the current, live state
+  of their home right now (current readings, device status) — as
+  opposed to Telemetry's historical aggregation and reports. Today this
+  is the "view current temperature" feature of the web client.
+- **User Identity.** Owns homeowner accounts, authentication and which
+  devices/home belong to which user. Implicit today — the monolith has
+  no visible auth/tenancy model — but required as its own context for a
+  multi-tenant, self-service product.
+- **Billing.** Owns the SaaS self-service subscription and module
+  purchase/entitlement per home. Does not exist today, since the current
+  model is sold via manual installation rather than self-service
+  purchase; required for the target "самообслуживание по модели SaaS"
+  model.
+
+Of these, only **Device Management** and **Telemetry/Monitoring** (as
+"temperature monitoring") are implemented by the current monolith
+today — and even those are fused into one process and one database
+rather than separate bounded contexts. Heating Control exists only as a
+side effect of the generic device model; Lighting Control, Access
+Control, User Identity and Billing are gaps the target architecture
+needs to fill.
+
+### 4. Problems of the monolithic solution
 - **Control direction:** Always server → device. The monolith initiates
   every read (polling the sensor/temperature service) and every write
   (pushing a heating command); a sensor can never push data to the
@@ -64,36 +109,24 @@ services and waits for the response).
   the same deployable, rather than adding an independent, separately
   owned service.
 
-### 3. Domain and bounded context definition
-
-Describe here the domains you identified.
-
-### 4. Problems of the monolithic solution
-
-- …
-- …
-- …
-
-If you believe the current solution has no problems, justify your
-position.
-
 ### 5. System context visualization — C4 diagram
 
-Add the context diagram in the C4 model here.
+**As-is** — how the current monolith interacts with its users and the
+physical sensor hardware:
 
-To add a link in the Readme.md file, you need to use Markdown syntax.
-This is done like this:
+![As-is system context diagram](docs/c4/context-as-is.png)
 
-```markdown
-[Link text](URL)
-```
+- PlantUML source: [docs/c4/context-as-is.puml](docs/c4/context-as-is.puml)
+- Rendered image: [docs/c4/context-as-is.png](docs/c4/context-as-is.png)
 
-Replace `Link text` with the text you want to use for the link. Instead
-of `URL`, insert the address the link should lead to. For example:
+**To-be** — how the target self-service SaaS ecosystem interacts with
+the homeowner, the company's own device modules, partner devices and a
+payment provider:
 
-```markdown
-[Visit Yandex](https://ya.ru/)
-```
+![To-be system context diagram](docs/c4/context-to-be.png)
+
+- PlantUML source: [docs/c4/context-to-be.puml](docs/c4/context-to-be.puml)
+- Rendered image: [docs/c4/context-to-be.png](docs/c4/context-to-be.png)
 
 # Task 2. Designing a Microservice Architecture
 

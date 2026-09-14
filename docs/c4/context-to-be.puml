@@ -1,0 +1,29 @@
+@startuml context-to-be
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_TOP_DOWN()
+
+Person(homeowner, "Homeowner", "Self-service SaaS customer: manages devices, scenarios, telemetry and billing for their home")
+
+System(warmhouse, "WarmHouse Smart Home Platform", "SaaS ecosystem. Lets a homeowner self-onboard devices, control heating/lighting/gates, observe telemetry and configure automation scenarios")
+
+System_Ext(ownDevices, "WarmHouse Device Modules", "Heating, lighting, access-control and telemetry modules sold by the company, connected over the internet")
+System_Ext(partnerDevices, "Partner Devices", "Third-party smart-home devices connected via standard IoT protocols")
+System_Ext(paymentProvider, "Payment Provider", "External payment gateway used to bill self-service subscriptions and module purchases")
+
+Rel(homeowner, warmhouse, "Self-onboards devices, controls heating/lighting/gates, views live status (Monitoring) and historical reports (Telemetry), configures scenarios, manages subscription", "HTTPS/REST")
+Rel(warmhouse, ownDevices, "Sends commands to / receives telemetry from", "Internet, standard protocol")
+Rel(warmhouse, partnerDevices, "Sends commands to / receives telemetry from", "Internet, standard protocol")
+Rel(warmhouse, paymentProvider, "Charges subscription and module purchases", "HTTPS/REST")
+
+note right of warmhouse
+  Key shifts from the as-is monolith:
+  * Self-service device onboarding - no technician visit required
+  * Multiple device types (heating, lighting, gates, telemetry), not just temperature
+  * Devices can be the company's own modules or partner devices over standard protocols
+  * Billing is a first-class part of the ecosystem (self-service SaaS model)
+  * Monitoring (live state) and Telemetry (historical aggregation/reports) are distinct capabilities
+end note
+
+SHOW_LEGEND()
+@enduml

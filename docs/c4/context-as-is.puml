@@ -10,7 +10,7 @@ System(warmhouse, "WarmHouse Application", "Monolith backed by PostgreSQL. Expos
 
 System_Ext(sensorHardware, "In-Home Temperature Sensor", "Physical hardware device installed in the homeowner's house")
 
-Rel(homeowner, warmhouse, "Views temperature, sends heating commands", "HTTPS/REST")
+Rel(homeowner, warmhouse, "Views current temperature (Monitoring), sends heating commands", "HTTPS/REST")
 Rel(warmhouse, sensorHardware, "Polls current temperature reading", "HTTP, synchronous")
 Rel(technician, sensorHardware, "Installs and connects to the home's network")
 
@@ -20,6 +20,7 @@ note right of warmhouse
   * Fully synchronous - every call, including the sensor poll, blocks the request
   * Control flows one way only: server -> sensor
   * No self-service onboarding - a technician must physically install and wire each sensor
+  * No Telemetry (historical aggregation/reports) - only the live reading is exposed
 end note
 
 SHOW_LEGEND()
