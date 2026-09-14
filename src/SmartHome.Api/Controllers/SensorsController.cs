@@ -6,8 +6,7 @@ using SmartHome.Api.Services;
 namespace SmartHome.Api.Controllers;
 
 /// <summary>
-/// Translated from Go's SensorHandler in apps/smart_home/handlers/sensors.go.
-/// Route layout mirrors the original gin router group registered under /api/v1.
+/// Handles sensor-related requests under /api/v1/sensors.
 /// </summary>
 [ApiController]
 [Route("api/v1/sensors")]

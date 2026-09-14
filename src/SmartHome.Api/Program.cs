@@ -2,10 +2,6 @@ using Npgsql;
 using SmartHome.Api.Data;
 using SmartHome.Api.Services;
 
-// Translated from Go's main.go (apps/smart_home/main.go). Same three
-// environment variables, same default values, same graceful shutdown
-// behavior (handled here by the generic host / Ctrl+C -> SIGTERM handling).
-
 var builder = WebApplication.CreateBuilder(args);
 
 var databaseUrl = GetEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/smarthome");
@@ -14,8 +10,7 @@ var port = GetEnv("PORT", "8080");
 
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
-// NpgsqlDataSource plays the role of the Go pgxpool.Pool: a single pooled
-// connection source, opened once and shared across requests.
+// A single pooled connection source, opened once and shared across requests.
 builder.Services.AddSingleton(_ =>
 {
     var connectionString = ConvertPostgresUrlToConnectionString(databaseUrl);
@@ -34,7 +29,7 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Verify the database connection at startup, same as Go's db.New() + Ping().
+// Verify the database connection at startup.
 using (var scope = app.Services.CreateScope())
 {
     var dataSource = scope.ServiceProvider.GetRequiredService<NpgsqlDataSource>();
@@ -66,8 +61,7 @@ static string GetEnv(string key, string defaultValue)
     return string.IsNullOrEmpty(value) ? defaultValue : value;
 }
 
-// Npgsql wants a keyword/value connection string; the Go app used a
-// postgres:// URL directly (pgx parses URLs natively), so this bridges the two.
+// Npgsql wants a keyword/value connection string rather than a postgres:// URL.
 static string ConvertPostgresUrlToConnectionString(string url)
 {
     var uri = new Uri(url);

@@ -1,6 +1,3 @@
-# Translated from apps/smart_home/Dockerfile (Go multi-stage build ->
-# .NET multi-stage build: SDK to publish, ASP.NET runtime to run).
-
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS builder
 WORKDIR /src

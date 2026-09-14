@@ -3,9 +3,8 @@ using System.Text.Json.Serialization;
 namespace SmartHome.Api.Models;
 
 /// <summary>
-/// Translated from Go's SensorUpdate struct. Go used the zero value ("" / nil)
-/// of each field to mean "not provided"; here that's expressed with nullable
-/// properties, checked the same way in SensorRepository.UpdateSensorAsync.
+/// The data that can be updated for a sensor. Fields left null are not
+/// changed - see SensorRepository.UpdateSensorAsync.
 /// </summary>
 public class SensorUpdate
 {

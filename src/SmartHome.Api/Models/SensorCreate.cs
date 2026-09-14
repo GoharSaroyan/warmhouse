@@ -4,8 +4,7 @@ using System.Text.Json.Serialization;
 namespace SmartHome.Api.Models;
 
 /// <summary>
-/// Translated from Go's SensorCreate struct. The `binding:"required"` tags
-/// become [Required] data annotations, validated via ModelState in the controller.
+/// The data needed to create a new sensor.
 /// </summary>
 public class SensorCreate
 {

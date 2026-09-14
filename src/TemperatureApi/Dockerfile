@@ -1,5 +1,3 @@
-# temperature-api build, same multi-stage pattern as SmartHome.Api's Dockerfile.
-
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS builder
 WORKDIR /src
@@ -15,7 +13,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
 WORKDIR /app
 COPY --from=builder /app/publish .
 
-# Default port per the original task spec (README.md task 5.2)
+# Default port for the temperature service
 ENV PORT=8081
 EXPOSE 8081
 

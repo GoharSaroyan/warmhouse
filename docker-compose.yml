@@ -1,9 +1,3 @@
-# Translated from apps/docker-compose.yml. The Go version left "postgres"
-# and "temperature-api" as TODO placeholders (task 5.2/5.3 of the
-# assignment) - filled in here the same way the finished Go solution
-# would be: postgres initialized from db/init.sql, temperature-api on 8081,
-# app on 8080, all sharing the smarthome-network.
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -11,11 +5,9 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      # No POSTGRES_DB here on purpose: init.sql (unchanged from the Go repo)
-      # issues its own CREATE DATABASE smarthome, so the init script must run
-      # against the default "postgres" database, not one Postgres already
-      # created for us - otherwise CREATE DATABASE fails ("already exists")
-      # and aborts the script before the sensors table gets created.
+      # init.sql creates the smarthome database itself, so POSTGRES_DB is
+      # deliberately left unset here - otherwise CREATE DATABASE would fail
+      # against a database Postgres already created for us.
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql

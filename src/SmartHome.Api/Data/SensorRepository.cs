@@ -4,9 +4,8 @@ using SmartHome.Api.Models;
 namespace SmartHome.Api.Data;
 
 /// <summary>
-/// Translated from Go's db.DB in apps/smart_home/db/db.go. NpgsqlDataSource
-/// plays the role of pgxpool.Pool: a connection pool the repository queries
-/// against, opened once in Program.cs and injected as a singleton.
+/// Data access for sensors, backed by a connection pool opened once in
+/// Program.cs and injected as a singleton.
 /// </summary>
 public class SensorRepository
 {
@@ -38,8 +37,7 @@ public class SensorRepository
         return sensors;
     }
 
-    // GetSensorByIdAsync retrieves a sensor by its ID. Returns null if not found
-    // (Go returned an error from pgx.ErrNoRows via QueryRow.Scan).
+    // GetSensorByIdAsync retrieves a sensor by its ID, or null if none exists.
     public async Task<Sensor?> GetSensorByIdAsync(int id, CancellationToken ct = default)
     {
         const string sql = """
@@ -55,8 +53,8 @@ public class SensorRepository
         return await reader.ReadAsync(ct) ? ReadSensor(reader) : null;
     }
 
-    // CreateSensorAsync creates a new sensor in the database. New sensors start
-    // "inactive" with value 0, same as the Go INSERT statement.
+    // CreateSensorAsync creates a new sensor in the database. New sensors
+    // start "inactive" with value 0 until a reading comes in.
     public async Task<Sensor> CreateSensorAsync(SensorCreate s, CancellationToken ct = default)
     {
         const string sql = """
@@ -80,11 +78,10 @@ public class SensorRepository
     }
 
     // UpdateSensorAsync updates an existing sensor, building the SET clause
-    // dynamically from whichever fields were provided - a direct translation
-    // of the Go function's argCount / query-string building.
+    // dynamically from whichever fields were provided.
     public async Task<Sensor?> UpdateSensorAsync(int id, SensorUpdate s, CancellationToken ct = default)
     {
-        // First check if the sensor exists, mirroring the Go GetSensorByID guard.
+        // Bail out early if the sensor doesn't exist.
         if (await GetSensorByIdAsync(id, ct) is null)
         {
             return null;
@@ -147,8 +144,7 @@ public class SensorRepository
         return ReadSensor(reader);
     }
 
-    // DeleteSensorAsync deletes a sensor by its ID. Returns false if no row
-    // matched, same signal as Go's "sensor not found" error via RowsAffected.
+    // DeleteSensorAsync deletes a sensor by its ID. Returns false if no row matched.
     public async Task<bool> DeleteSensorAsync(int id, CancellationToken ct = default)
     {
         const string sql = "DELETE FROM sensors WHERE id = @id";

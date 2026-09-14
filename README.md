@@ -1,73 +1,60 @@
-# WarmHouse (C#)
-
-A direct C# translation of the Go project at
-[Yandex-Practicum/architecture-warmhouse](https://github.com/Yandex-Practicum/architecture-warmhouse)
-(cloned locally at `../warmehousego`). Same two-service architecture, same
-database schema, same REST API - only the language changed.
-
-## What this is
-
-The original repo's `apps/smart_home` is a Go/Gin monolith that manages
-sensors in Postgres and calls out to a `temperature-api` service over HTTP
-for live readings (the `temperature-api` app itself was left as an exercise
-in the Go repo's task list - it's implemented here too, in C#, so the whole
-system is one language).
-
-| Go source | C# equivalent |
-|---|---|
-| `apps/smart_home/main.go` | [`src/SmartHome.Api/Program.cs`](src/SmartHome.Api/Program.cs) |
-| `apps/smart_home/models/sensor.go` | [`src/SmartHome.Api/Models/`](src/SmartHome.Api/Models/) |
-| `apps/smart_home/db/db.go` (pgx) | [`src/SmartHome.Api/Data/SensorRepository.cs`](src/SmartHome.Api/Data/SensorRepository.cs) (Npgsql) |
-| `apps/smart_home/handlers/sensors.go` (gin) | [`src/SmartHome.Api/Controllers/SensorsController.cs`](src/SmartHome.Api/Controllers/SensorsController.cs) (ASP.NET Core MVC) |
-| `apps/smart_home/services/temperature_service.go` | [`src/SmartHome.Api/Services/TemperatureService.cs`](src/SmartHome.Api/Services/TemperatureService.cs) |
-| `apps/smart_home/init.sql` | [`db/init.sql`](db/init.sql) (unchanged) |
-| *(task 5.1 - a temperature-api to write yourself)* | [`src/TemperatureApi/Program.cs`](src/TemperatureApi/Program.cs) |
-| `apps/docker-compose.yml` | [`docker-compose.yml`](docker-compose.yml) (postgres/temperature-api sections filled in) |
-
-Same database, same tables, same REST routes, same JSON shapes
-(`snake_case` field names preserved via `[JsonPropertyName]`), same
-environment variables (`DATABASE_URL`, `TEMPERATURE_API_URL`, `PORT`), same
-default ports (8080 for the app, 8081 for temperature-api).
+# Smart Home Sensor Management API
 
 ## Prerequisites
 
-- Docker and Docker Compose, **or**
-- .NET 9 SDK (for running the two projects directly)
+- Docker and Docker Compose (or the .NET 9 SDK, to run without Docker)
 
 ## Getting Started
 
 ### Option 1: Using Docker Compose (Recommended)
 
+The easiest way to start the application is to use Docker Compose:
+
 ```bash
 ./init.sh
 ```
 
-or directly:
+This script will:
+
+1. Build and start the PostgreSQL and application containers
+2. Wait for the services to be ready
+3. Display information about how to access the API
+
+Alternatively, you can run Docker Compose directly:
 
 ```bash
-docker-compose up -d --build
+docker-compose up -d
 ```
 
-The API will be available at http://localhost:8080, the temperature service
-at http://localhost:8081. (If 8081 is already taken by something else on
-your machine, change the host side of the `temperature-api` port mapping in
-`docker-compose.yml`, e.g. `"8091:8081"` - the container-to-container URL
-`http://temperature-api:8081` used by `app` is unaffected either way.)
+The API will be available at http://localhost:8080
 
 ### Option 2: Manual setup
 
+If you prefer to run the application without Docker:
+
+1. Start the PostgreSQL database:
+
 ```bash
 docker-compose up -d postgres
+```
+
+2. Build and run the temperature service:
+
+```bash
 dotnet run --project src/TemperatureApi
+```
+
+3. Build and run the application:
+
+```bash
 dotnet run --project src/SmartHome.Api
 ```
 
 ## API Testing
 
-Import `smarthome-api.postman_collection.json` into Postman, same as the
-original repo.
+A Postman collection is provided for testing the API. Import the `smarthome-api.postman_collection.json` file into Postman to get started.
 
-## API Endpoints (unchanged from the Go version)
+## API Endpoints
 
 - `GET /health` - Health check
 - `GET /api/v1/sensors` - Get all sensors
@@ -76,4 +63,3 @@ original repo.
 - `PUT /api/v1/sensors/:id` - Update a sensor
 - `DELETE /api/v1/sensors/:id` - Delete a sensor
 - `PATCH /api/v1/sensors/:id/value` - Update a sensor's value and status
-- `GET /api/v1/sensors/temperature/:location` - Fetch live temperature for a location

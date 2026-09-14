@@ -3,8 +3,7 @@ using System.Text.Json.Serialization;
 namespace SmartHome.Api.Services;
 
 /// <summary>
-/// Translated from Go's TemperatureResponse struct in
-/// apps/smart_home/services/temperature_service.go.
+/// A temperature reading returned by the temperature service.
 /// </summary>
 public class TemperatureResponse
 {

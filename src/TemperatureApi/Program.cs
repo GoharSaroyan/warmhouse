@@ -1,11 +1,8 @@
 using System.Text.Json.Serialization;
 
-// This is the "temperature-api" app called for in apps/README.md task 5.1
-// of the original Go repo (it doesn't exist in Go source - the task asks you
-// to write it in whatever language you like). It's translated here in C#
-// alongside the rest so the whole system stays one language: a minimal API
-// that returns a random temperature reading for a location/sensor, using the
-// exact same location <-> sensorId default-mapping rules given in the task.
+// Minimal API that returns a simulated temperature reading for a given
+// location or sensor, applying a default mapping between the two when
+// only one of them is supplied.
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();

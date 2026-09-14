@@ -3,8 +3,7 @@ using System.Text.Json.Serialization;
 namespace SmartHome.Api.Models;
 
 /// <summary>
-/// Translated from Go's SensorType string constant in apps/smart_home/models/sensor.go.
-/// Serializes to/from the same lowercase JSON string values.
+/// The type of sensor. Serializes as a lowercase JSON string.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter<SensorType>))]
 public enum SensorType

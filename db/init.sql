@@ -1,6 +1,3 @@
--- Translated verbatim from apps/smart_home/init.sql in the Go repo.
--- Schema is unchanged: same table, same columns, same indexes.
-
 -- Create the database if it doesn't exist
 CREATE DATABASE smarthome;
 

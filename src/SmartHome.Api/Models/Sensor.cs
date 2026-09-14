@@ -3,8 +3,7 @@ using System.Text.Json.Serialization;
 namespace SmartHome.Api.Models;
 
 /// <summary>
-/// Translated from Go's Sensor struct in apps/smart_home/models/sensor.go.
-/// JSON property names mirror the original `json:"..."` tags.
+/// A smart home sensor.
 /// </summary>
 public class Sensor
 {

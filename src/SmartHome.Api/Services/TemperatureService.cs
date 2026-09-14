@@ -3,9 +3,7 @@ using System.Net.Http.Json;
 namespace SmartHome.Api.Services;
 
 /// <summary>
-/// Translated from Go's TemperatureService in
-/// apps/smart_home/services/temperature_service.go. Fetches temperature
-/// readings from the external temperature-api container over HTTP.
+/// Fetches temperature readings from the external temperature-api service over HTTP.
 /// </summary>
 public class TemperatureService
 {

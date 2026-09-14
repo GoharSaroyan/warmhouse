@@ -1,6 +1,4 @@
 #!/bin/bash
-# Same as apps/init.sh in the Go repo - only the paths moved, the compose
-# setup underneath still exposes the same container names and ports.
 
 # Exit on any error
 set -e
