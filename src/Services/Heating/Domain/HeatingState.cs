@@ -2,7 +2,7 @@ namespace Heating.Api.Domain;
 
 /// <summary>
 /// Desired vs. actual heating state for one device (room). See
-/// docs/erd/erd.puml's DeviceState entity.
+/// docs/erd/erd.puml's HeatingState entity.
 /// </summary>
 public class HeatingState
 {

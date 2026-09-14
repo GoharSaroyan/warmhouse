@@ -176,8 +176,9 @@ you prepare the C4 diagrams correctly, they will show this on their own.
 
 # Task 3. Developing an ER Diagram
 
-**Entities:** User, House, DeviceType, Module, Device, DeviceState,
-TelemetryData, ThresholdRule, Subscription.
+**Entities:** User, House, DeviceType, Module, Device, HeatingState,
+LightingState, AccessState, AccessAuditLog, LiveState, TelemetryData,
+ThresholdRule, Subscription.
 
 **Key relationships:**
 
@@ -189,9 +190,17 @@ TelemetryData, ThresholdRule, Subscription.
   telemetry) has many purchasable module products.
 - **Module — Device:** one module (product) is installed as many
   physical devices; each device is an instance of exactly one module.
-- **Device — DeviceState:** one device has exactly one current state
-  record (desired vs. actual value) — owned by whichever control
-  service (Heating/Lighting/Access Control) manages that device type.
+- **Device — HeatingState / LightingState / AccessState:** one device
+  has exactly one current state record (desired vs. actual value) in
+  whichever of these it belongs to — there is no single shared
+  `DeviceState` table; each control service (Heating/Lighting/Access
+  Control) owns its own state table, keyed directly by `device_id`, in
+  its own database.
+- **Device — AccessAuditLog:** one gate device has many audit log
+  entries (who did what, when) recorded by the Access Control service.
+- **Device / House — LiveState:** one device has one current
+  live-view state, owned by the Monitoring service; a house has many
+  devices' live states.
 - **Device — TelemetryData:** one device generates many telemetry
   records over time.
 - **House / Device — ThresholdRule:** one house has many threshold

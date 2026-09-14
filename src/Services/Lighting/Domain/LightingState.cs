@@ -2,7 +2,7 @@ namespace Lighting.Api.Domain;
 
 /// <summary>
 /// Desired vs. actual lighting state for one device (room). See
-/// docs/erd/erd.puml's DeviceState entity.
+/// docs/erd/erd.puml's LightingState entity.
 /// </summary>
 public class LightingState
 {

@@ -46,12 +46,49 @@ entity "Device" as device {
   installed_at : timestamp
 }
 
-entity "DeviceState" as deviceState {
+' DeviceState is not one shared table - each control service owns its
+' own copy, keyed directly by device_id (no separate id column), in its
+' own database. Shown as three entities to match reality.
+
+entity "HeatingState" as heatingState {
+  * device_id : uuid <<PK, FK>>
+  --
+  desired_value : varchar
+  actual_value : varchar
+  updated_at : timestamp
+}
+
+entity "LightingState" as lightingState {
+  * device_id : uuid <<PK, FK>>
+  --
+  desired_value : varchar
+  actual_value : varchar
+  updated_at : timestamp
+}
+
+entity "AccessState" as accessState {
+  * device_id : uuid <<PK, FK>>
+  --
+  desired_value : varchar
+  actual_value : varchar
+  updated_at : timestamp
+}
+
+entity "AccessAuditLog" as accessAuditLog {
   * id : uuid <<PK>>
   --
   # device_id : uuid <<FK>>
-  desired_value : varchar
-  actual_value : varchar
+  action : varchar
+  actor : varchar
+  occurred_at : timestamp
+}
+
+entity "LiveState" as liveState {
+  * device_id : uuid <<PK, FK>>
+  --
+  # house_id : uuid <<FK>>
+  value : varchar
+  status : varchar
   updated_at : timestamp
 }
 
@@ -90,7 +127,12 @@ user ||--o{ house : "one user has many houses,\neach house has one user"
 house ||--o{ device : "one house has many devices,\neach device belongs to one house"
 deviceType ||--o{ module : "one type has many module products"
 module ||--o{ device : "one module is installed as many devices"
-device ||--o| deviceState : "one device has one current state"
+device ||--o| heatingState : "one device has one heating state (if it's a heating device)"
+device ||--o| lightingState : "one device has one lighting state (if it's a lighting device)"
+device ||--o| accessState : "one device has one access state (if it's a gate device)"
+device ||--o{ accessAuditLog : "one gate device has many audit entries"
+device ||--o| liveState : "one device has one current live-view state"
+house ||--o{ liveState : "one house has many devices' live states"
 device ||--o{ telemetry : "one device generates many telemetry records"
 house ||--o{ thresholdRule : "one house has many threshold rules"
 device |o--o{ thresholdRule : "a rule may be scoped to one device,\nor to null (whole house)"

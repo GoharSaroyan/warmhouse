@@ -2,7 +2,7 @@ namespace AccessControl.Api.Domain;
 
 /// <summary>
 /// Desired vs. actual gate state for one device. See docs/erd/erd.puml's
-/// DeviceState entity.
+/// AccessState entity.
 /// </summary>
 public class AccessState
 {
