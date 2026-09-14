@@ -8,6 +8,7 @@ using Billing.Api.Application;
 using Billing.Api.Domain;
 using Billing.Api.Infrastructure;
 using Npgsql;
+using WarmHouse.WebDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,8 +23,7 @@ builder.Services.AddSingleton<IPaymentProviderClient, PaymentProviderClient>();
 builder.Services.AddSingleton<SubscriptionHandler>();
 
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.AddApiDocumentation("Billing Service API", "Owns the SaaS self-service subscription and module purchase/entitlement per home.");
 
 var app = builder.Build();
 
@@ -34,10 +34,7 @@ using (var scope = app.Services.CreateScope())
     app.Logger.LogInformation("Connected to database and verified schema");
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.UseApiDocumentation("Billing Service API");
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "billing" }));
 

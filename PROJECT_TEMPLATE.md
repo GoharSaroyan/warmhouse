@@ -267,9 +267,31 @@ each client screen maps closely to one service's REST resource.
 
 ### 2. API documentation
 
-Attach links here to the API documentation for the microservices you
-designed in the first part of the project work. Use Swagger/OpenAPI or
-AsyncAPI for documentation.
+Every REST microservice uses the same shared Swagger/OpenAPI setup
+([src/Common/WarmHouse.WebDefaults](src/Common/WarmHouse.WebDefaults)'s
+`AddApiDocumentation`/`UseApiDocumentation` extension methods, built on
+[Swashbuckle.AspNetCore](https://github.com/domaindrivendev/Swashbuckle.AspNetCore))
+so each service gets an interactive Swagger UI at `/swagger` and its raw
+OpenAPI document at `/swagger/v1/swagger.json` - reachable directly on
+the service's own port, or through the API Gateway (which forwards the
+path after stripping its `/api/v1/<service>` prefix). Once
+`docker compose up` is running:
+
+| Service | Direct | Via API Gateway |
+|---|---|---|
+| Device Management | [localhost:5001/swagger](http://localhost:5001/swagger) | [localhost:5000/api/v1/devices/swagger](http://localhost:5000/api/v1/devices/swagger) |
+| Heating Control | [localhost:5002/swagger](http://localhost:5002/swagger) | [localhost:5000/api/v1/heating/swagger](http://localhost:5000/api/v1/heating/swagger) |
+| Lighting Control | [localhost:5003/swagger](http://localhost:5003/swagger) | [localhost:5000/api/v1/lighting/swagger](http://localhost:5000/api/v1/lighting/swagger) |
+| Access Control | [localhost:5004/swagger](http://localhost:5004/swagger) | [localhost:5000/api/v1/access/swagger](http://localhost:5000/api/v1/access/swagger) |
+| Monitoring | [localhost:5005/swagger](http://localhost:5005/swagger) | [localhost:5000/api/v1/monitoring/swagger](http://localhost:5000/api/v1/monitoring/swagger) |
+| Telemetry | [localhost:5006/swagger](http://localhost:5006/swagger) | [localhost:5000/api/v1/telemetry/swagger](http://localhost:5000/api/v1/telemetry/swagger) |
+| User Identity | [localhost:5007/swagger](http://localhost:5007/swagger) | [localhost:5000/api/v1/identity/swagger](http://localhost:5000/api/v1/identity/swagger) |
+| Billing | [localhost:5008/swagger](http://localhost:5008/swagger) | [localhost:5000/api/v1/billing/swagger](http://localhost:5000/api/v1/billing/swagger) |
+
+The **Device Gateway** isn't in this table - it has no REST API to
+document (it only exposes `/health`; everything else it does is via
+RabbitMQ consumers - see its
+[component diagram](docs/c4/component-device-gateway.puml)).
 
 # Task 5. Working with docker and docker-compose
 

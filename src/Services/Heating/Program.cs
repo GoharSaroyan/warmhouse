@@ -9,6 +9,7 @@ using Heating.Api.Domain;
 using Heating.Api.Infrastructure;
 using MassTransit;
 using Npgsql;
+using WarmHouse.WebDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,8 +41,7 @@ builder.Services.AddMassTransit(x =>
 });
 
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.AddApiDocumentation("Heating Control Service API", "Turns heating on/off and tracks desired/actual state per room.");
 
 var app = builder.Build();
 
@@ -52,10 +52,7 @@ using (var scope = app.Services.CreateScope())
     app.Logger.LogInformation("Connected to database and verified schema");
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.UseApiDocumentation("Heating Control Service API");
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "heating" }));
 

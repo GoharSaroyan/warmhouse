@@ -9,6 +9,7 @@ using AccessControl.Api.Domain;
 using AccessControl.Api.Infrastructure;
 using MassTransit;
 using Npgsql;
+using WarmHouse.WebDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,8 +42,7 @@ builder.Services.AddMassTransit(x =>
 });
 
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.AddApiDocumentation("Access Control Service API", "Locks/unlocks automatic gates and keeps the access audit trail.");
 
 var app = builder.Build();
 
@@ -53,10 +53,7 @@ using (var scope = app.Services.CreateScope())
     app.Logger.LogInformation("Connected to database and verified schema");
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.UseApiDocumentation("Access Control Service API");
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "access-control" }));
 

@@ -86,8 +86,8 @@ services:
 
   device-management:
     build:
-      context: ./src/Services/DeviceManagement
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services/DeviceManagement/Dockerfile
     container_name: device-management
     depends_on:
       postgres:
@@ -210,8 +210,8 @@ services:
 
   telemetry:
     build:
-      context: ./src/Services/Telemetry
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services/Telemetry/Dockerfile
     container_name: telemetry
     depends_on:
       postgres:
@@ -227,8 +227,8 @@ services:
 
   identity:
     build:
-      context: ./src/Services/Identity
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services/Identity/Dockerfile
     container_name: identity
     depends_on:
       postgres:
@@ -244,8 +244,8 @@ services:
 
   billing:
     build:
-      context: ./src/Services/Billing
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Services/Billing/Dockerfile
     container_name: billing
     depends_on:
       postgres:

@@ -8,6 +8,7 @@ using Identity.Api.Application;
 using Identity.Api.Domain;
 using Identity.Api.Infrastructure;
 using Npgsql;
+using WarmHouse.WebDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,8 +24,7 @@ builder.Services.AddSingleton<UserHandler>();
 builder.Services.AddSingleton<HouseHandler>();
 
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.AddApiDocumentation("User Identity Service API", "Owns homeowner accounts, authentication and home/tenant membership.");
 
 var app = builder.Build();
 
@@ -35,10 +35,7 @@ using (var scope = app.Services.CreateScope())
     app.Logger.LogInformation("Connected to database and verified schema");
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.UseApiDocumentation("User Identity Service API");
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "identity" }));
 

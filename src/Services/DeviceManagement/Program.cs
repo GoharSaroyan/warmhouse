@@ -2,6 +2,7 @@ using DeviceManagement.Api.Application;
 using DeviceManagement.Api.Domain;
 using DeviceManagement.Api.Infrastructure;
 using Npgsql;
+using WarmHouse.WebDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,8 +32,7 @@ builder.Services.AddSingleton<OnboardingHandler>();
 // ASP.NET Core's default JSON policy (camelCase) applies uniformly to
 // every DTO here - no per-property [JsonPropertyName] attributes needed.
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.AddApiDocumentation("Device Management Service API", "Device catalog, self-service onboarding and ownership.");
 
 var app = builder.Build();
 
@@ -44,10 +44,7 @@ using (var scope = app.Services.CreateScope())
     app.Logger.LogInformation("Connected to database and verified schema");
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.UseApiDocumentation("Device Management Service API");
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "device-management" }));
 

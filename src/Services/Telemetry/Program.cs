@@ -10,6 +10,7 @@ using Npgsql;
 using Telemetry.Api.Application;
 using Telemetry.Api.Domain;
 using Telemetry.Api.Infrastructure;
+using WarmHouse.WebDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,8 +29,7 @@ builder.Services.AddSingleton<RecordMeasurementHandler>();
 builder.Services.AddSingleton<CreateThresholdRuleHandler>();
 
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.AddApiDocumentation("Telemetry Service API", "Ingests, stores and aggregates device data over time for historical analysis and reports.");
 
 var app = builder.Build();
 
@@ -40,10 +40,7 @@ using (var scope = app.Services.CreateScope())
     app.Logger.LogInformation("Connected to database and verified schema");
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.UseApiDocumentation("Telemetry Service API");
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "telemetry" }));
 
