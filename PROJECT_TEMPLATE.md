@@ -18,21 +18,51 @@ description and the assignment conditions. That's fine.
 
 **Heating management:**
 
-- Users can…
-- The system supports…
-- …
+- Users can remotely turn heating on/off in their home through the web
+  client, which talks to the monolith over this REST API.
+- The system supports one sensor/actuator per room today; a sensor's
+  writable `status`/`value` fields double as the on/off command and
+  target reading, since the domain model has no dedicated "actuator"
+  concept separate from "sensor".
+- Every command is handled synchronously — the client waits for the
+  monolith to accept the change before it returns.
 
 **Temperature monitoring:**
 
-- Users can…
-- The system supports…
-- …
+- Users can view the current temperature for each registered sensor
+  through the web client.
+- The system supports polling live readings on demand: whenever sensors
+  are listed or fetched, the monolith calls an external temperature
+  service (over plain HTTP) to fetch and merge the latest value, status
+  and timestamp before responding.
+- Sensor registration (create/update/delete) is persisted in PostgreSQL;
+  only the "live" reading comes from the external service on the fly.
 
 ### 2. Analysis of the monolithic application's architecture
 
-List here the main features of the current application: what
-programming language is used, what database, how interaction between
-components is organized, and so on.
+The current application is a single monolithic backend written in **Go**,
+backed by a **PostgreSQL** database, exposing a REST API over HTTPS. All
+request handling, business logic and data access run in one deployable
+process, and all interaction is synchronous (server calls out to sensors/
+services and waits for the response).
+
+- **Control direction:** Always server → device. The monolith initiates
+  every read (polling the sensor/temperature service) and every write
+  (pushing a heating command); a sensor can never push data to the
+  server on its own (no webhooks, no streaming, no pub/sub).
+- **Scalability:** Poor. Because everything is one process bound to one
+  database, the only scaling lever is running more copies of the whole
+  monolith — you cannot scale "temperature reads" independently from
+  "heating commands" even though they have very different load profiles.
+- **Deployability:** Coupled. A change to any single capability (e.g.
+  fixing a bug in temperature polling) requires rebuilding, retesting and
+  redeploying the entire application, and requires stopping the whole
+  service — there is no independent or zero-downtime deployment per
+  capability.
+- **Extensibility:** Poor. Adding a new device type (lighting, gates,
+  cameras) means growing the same codebase, the same database schema and
+  the same deployable, rather than adding an independent, separately
+  owned service.
 
 ### 3. Domain and bounded context definition
 
