@@ -30,7 +30,9 @@ services:
     environment:
       - PORT=8081
     ports:
-      - "8081:8081"
+      # Host port 18081, not 8081 - something else on this machine
+      # (a McAfee agent service) already listens on 8081.
+      - "18081:8081"
     restart: unless-stopped
     networks:
       - smarthome-network
@@ -51,6 +53,181 @@ services:
       - PORT=8080
     ports:
       - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  # ===========================================================================
+  # Target microservice architecture (docs/c4/container-to-be.puml). Each
+  # service below owns its own database in the same Postgres instance
+  # (schemas created by db/init.sql) and is reached only through the
+  # api-gateway - see src/Gateway/appsettings.json for the route mapping.
+  # ===========================================================================
+
+  device-management:
+    build:
+      context: ./src/Services/DeviceManagement
+      dockerfile: Dockerfile
+    container_name: device-management
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/device_management
+      - PORT=5001
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  heating:
+    build:
+      context: ./src/Services/Heating
+      dockerfile: Dockerfile
+    container_name: heating
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/heating
+      - PORT=5002
+    ports:
+      - "5002:5002"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  lighting:
+    build:
+      context: ./src/Services/Lighting
+      dockerfile: Dockerfile
+    container_name: lighting
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/lighting
+      - PORT=5003
+    ports:
+      - "5003:5003"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  access-control:
+    build:
+      context: ./src/Services/AccessControl
+      dockerfile: Dockerfile
+    container_name: access-control
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/access_control
+      - PORT=5004
+    ports:
+      - "5004:5004"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  monitoring:
+    build:
+      context: ./src/Services/Monitoring
+      dockerfile: Dockerfile
+    container_name: monitoring
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/monitoring
+      - PORT=5005
+    ports:
+      - "5005:5005"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  telemetry:
+    build:
+      context: ./src/Services/Telemetry
+      dockerfile: Dockerfile
+    container_name: telemetry
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/telemetry
+      - PORT=5006
+    ports:
+      - "5006:5006"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  identity:
+    build:
+      context: ./src/Services/Identity
+      dockerfile: Dockerfile
+    container_name: identity
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/identity
+      - PORT=5007
+    ports:
+      - "5007:5007"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  billing:
+    build:
+      context: ./src/Services/Billing
+      dockerfile: Dockerfile
+    container_name: billing
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/billing
+      - PORT=5008
+    ports:
+      - "5008:5008"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  api-gateway:
+    build:
+      context: ./src/Gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    depends_on:
+      - device-management
+      - heating
+      - lighting
+      - access-control
+      - monitoring
+      - telemetry
+      - identity
+      - billing
+    environment:
+      - PORT=5000
+      # Overrides appsettings.json's localhost defaults with docker-compose
+      # service hostnames (YARP config bound from env vars via "__").
+      - ReverseProxy__Clusters__devices-cluster__Destinations__destination1__Address=http://device-management:5001
+      - ReverseProxy__Clusters__heating-cluster__Destinations__destination1__Address=http://heating:5002
+      - ReverseProxy__Clusters__lighting-cluster__Destinations__destination1__Address=http://lighting:5003
+      - ReverseProxy__Clusters__access-cluster__Destinations__destination1__Address=http://access-control:5004
+      - ReverseProxy__Clusters__monitoring-cluster__Destinations__destination1__Address=http://monitoring:5005
+      - ReverseProxy__Clusters__telemetry-cluster__Destinations__destination1__Address=http://telemetry:5006
+      - ReverseProxy__Clusters__identity-cluster__Destinations__destination1__Address=http://identity:5007
+      - ReverseProxy__Clusters__billing-cluster__Destinations__destination1__Address=http://billing:5008
+    ports:
+      - "5000:5000"
     restart: unless-stopped
     networks:
       - smarthome-network
