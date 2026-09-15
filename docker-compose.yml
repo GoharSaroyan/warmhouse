@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      # init.sql creates the smarthome database itself, so POSTGRES_DB is
+      # init.sql creates each service's database itself, so POSTGRES_DB is
       # deliberately left unset here - otherwise CREATE DATABASE would fail
       # against a database Postgres already created for us.
     volumes:
@@ -18,41 +18,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    restart: unless-stopped
-    networks:
-      - smarthome-network
-
-  temperature-api:
-    build:
-      context: ./src/TemperatureApi
-      dockerfile: Dockerfile
-    container_name: temperature-api
-    environment:
-      - PORT=8081
-    ports:
-      # Host port 18081, not 8081 - something else on this machine
-      # (a McAfee agent service) already listens on 8081.
-      - "18081:8081"
-    restart: unless-stopped
-    networks:
-      - smarthome-network
-
-  app:
-    build:
-      context: ./src/SmartHome.Api
-      dockerfile: Dockerfile
-    container_name: smarthome-app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      temperature-api:
-        condition: service_started
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/smarthome
-      - TEMPERATURE_API_URL=http://temperature-api:8081
-      - PORT=8080
-    ports:
-      - "8080:8080"
     restart: unless-stopped
     networks:
       - smarthome-network

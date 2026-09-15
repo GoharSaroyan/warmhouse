@@ -1,65 +1,44 @@
-# Smart Home Sensor Management API
+# WarmHouse Microservices
+
+Target microservice architecture for the "Тёплый дом" (WarmHouse) smart
+home platform — see [PROJECT_TEMPLATE.md](PROJECT_TEMPLATE.md) and
+[docs/c4](docs/c4) for the design.
 
 ## Prerequisites
 
-- Docker and Docker Compose (or the .NET 9 SDK, to run without Docker)
+- Docker and Docker Compose (or the .NET 9 SDK, to run services individually)
 
 ## Getting Started
 
-### Option 1: Using Docker Compose (Recommended)
-
-The easiest way to start the application is to use Docker Compose:
-
 ```bash
-./init.sh
+docker-compose up -d --build
 ```
 
-This script will:
+This starts:
 
-1. Build and start the PostgreSQL and application containers
-2. Wait for the services to be ready
-3. Display information about how to access the API
-
-Alternatively, you can run Docker Compose directly:
-
-```bash
-docker-compose up -d
-```
-
-The API will be available at http://localhost:8080
-
-### Option 2: Manual setup
-
-If you prefer to run the application without Docker:
-
-1. Start the PostgreSQL database:
-
-```bash
-docker-compose up -d postgres
-```
-
-2. Build and run the temperature service:
-
-```bash
-dotnet run --project src/TemperatureApi
-```
-
-3. Build and run the application:
-
-```bash
-dotnet run --project src/SmartHome.Api
-```
+- **postgres** — one Postgres instance, one database per service (see
+  [db/init.sql](db/init.sql))
+- **rabbitmq** — message broker for async events between services
+  (management UI at http://localhost:15672, guest/guest)
+- Each microservice (Device Management, Heating, Lighting, Access
+  Control, Monitoring, Device Gateway, Telemetry, Identity, Billing)
+- **api-gateway** — single entry point at http://localhost:5000, routing
+  to the services above
 
 ## API Testing
 
-A Postman collection is provided for testing the API. Import the `smarthome-api.postman_collection.json` file into Postman to get started.
+A Postman collection is provided: `smarthome-api.postman_collection.json`.
 
-## API Endpoints
+## API Endpoints (via the API Gateway, http://localhost:5000)
 
-- `GET /health` - Health check
-- `GET /api/v1/sensors` - Get all sensors
-- `GET /api/v1/sensors/:id` - Get a specific sensor
-- `POST /api/v1/sensors` - Create a new sensor
-- `PUT /api/v1/sensors/:id` - Update a sensor
-- `DELETE /api/v1/sensors/:id` - Delete a sensor
-- `PATCH /api/v1/sensors/:id/value` - Update a sensor's value and status
+- `/api/v1/devices/*` → Device Management Service
+- `/api/v1/heating/*` → Heating Service
+- `/api/v1/lighting/*` → Lighting Service
+- `/api/v1/access/*` → Access Control Service
+- `/api/v1/monitoring/*` → Monitoring Service
+- `/api/v1/telemetry/*` → Telemetry Service
+- `/api/v1/identity/*` → Identity Service
+- `/api/v1/billing/*` → Billing Service
+
+Each service also exposes Swagger directly on its own port (see
+`docker-compose.yml`) when running in Development.
