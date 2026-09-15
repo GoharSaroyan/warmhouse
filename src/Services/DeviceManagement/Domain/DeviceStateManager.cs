@@ -18,9 +18,9 @@ public class DeviceStateManager
         _modules = modules;
     }
 
-    public Task<List<Device>> GetDevicesAsync(Guid? houseId, CancellationToken ct = default)
+    public Task<List<Device>> GetDevicesAsync(Guid? houseId, Guid? deviceTypeId, CancellationToken ct = default)
     {
-        return _devices.GetAllAsync(houseId, ct);
+        return _devices.GetAllAsync(houseId, deviceTypeId, ct);
     }
 
     public Task<Device?> GetDeviceAsync(Guid id, CancellationToken ct = default)

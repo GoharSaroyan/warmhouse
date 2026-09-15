@@ -27,7 +27,12 @@ This starts:
 
 ## API Testing
 
-A Postman collection is provided: `smarthome-api.postman_collection.json`.
+Run [test/smoke-test.sh](test/smoke-test.sh) (it also runs automatically
+as the `smoke-test` container in `docker-compose.yml`, right after the
+rest of the stack starts). There is no Postman collection - it was tied
+to the old monolith's flat sensor endpoints and no longer matches this
+API; each service also exposes an interactive Swagger UI (see
+[PROJECT_TEMPLATE.md](PROJECT_TEMPLATE.md), Task 4).
 
 ## API Endpoints (via the API Gateway, http://localhost:5000)
 

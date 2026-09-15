@@ -39,6 +39,19 @@ CREATE INDEX IF NOT EXISTS idx_modules_device_type_id ON modules(device_type_id)
 CREATE INDEX IF NOT EXISTS idx_devices_module_id ON devices(module_id);
 CREATE INDEX IF NOT EXISTS idx_devices_house_id ON devices(house_id);
 
+-- Seed data so Task 5's Postman collection ("Create Sensor", "Get All
+-- Sensors") and the smoke test work against known ids, with no setup calls
+-- required first: a "Telemetry" device type (readable sensors that report
+-- values but take no commands - see CommandHandler.cs) and one module
+-- product for it, a temperature sensor.
+INSERT INTO device_types (id, name, unit, description) VALUES
+    ('11111111-1111-1111-1111-111111111111', 'Telemetry', '°C', 'Sensors that report readings (e.g. temperature) without accepting commands')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO modules (id, device_type_id, name, manufacturer, protocol, price) VALUES
+    ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'SmartTemp X1', 'WarmHouse', 'http', 29.99)
+ON CONFLICT (id) DO NOTHING;
+
 -- Heating Control Service -------------------------------------------------
 CREATE DATABASE heating;
 \c heating;

@@ -16,10 +16,29 @@ public record ModuleResponse(Guid Id, Guid DeviceTypeId, string Name, string Man
 
 public record ModuleCreateRequest(Guid DeviceTypeId, string Name, string Manufacturer, string Protocol, decimal Price);
 
-public record DeviceResponse(Guid Id, Guid ModuleId, Guid HouseId, string SerialNumber, string Status, DateTimeOffset InstalledAt)
+/// <summary>
+/// A device, plus - only when listed through GetAll's deviceType filter for
+/// a readable sensor type ("Telemetry") - a freshly generated current
+/// reading (Value/Unit/ReadingStatus/ReadingAt). Devices of other types, or
+/// devices returned without that filter, simply leave those fields null.
+/// </summary>
+public record DeviceResponse(
+    Guid Id, Guid ModuleId, Guid HouseId, string SerialNumber, string Status, DateTimeOffset InstalledAt,
+    double? Value = null, string? Unit = null, string? ReadingStatus = null, DateTimeOffset? ReadingAt = null)
 {
     public static DeviceResponse From(Device d) => new(d.Id, d.ModuleId, d.HouseId, d.SerialNumber, d.Status, d.InstalledAt);
+
+    public static DeviceResponse From(Device d, SensorReading reading) => new(
+        d.Id, d.ModuleId, d.HouseId, d.SerialNumber, d.Status, d.InstalledAt,
+        reading.Value, reading.Unit, reading.Status, reading.ReadingAt);
 }
+
+/// <summary>
+/// A simulated instantaneous reading for a "Telemetry"-type device (e.g. a
+/// temperature sensor) - generated fresh on every GetAll call, the same way
+/// a real remote sensor would return a new value on every poll. See Task 5.
+/// </summary>
+public record SensorReading(double Value, string Unit, string Status, DateTimeOffset ReadingAt);
 
 public record DeviceCreateRequest(Guid ModuleId, Guid HouseId, string SerialNumber);
 

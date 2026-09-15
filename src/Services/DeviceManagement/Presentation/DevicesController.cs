@@ -24,17 +24,23 @@ public class DevicesController : ControllerBase
         _onboardingHandler = onboardingHandler;
     }
 
-    /// <summary>Lists devices, optionally scoped to one house.</summary>
+    /// <summary>Lists devices, optionally scoped to one house and/or one device type.</summary>
     /// <param name="houseId">When given, only devices belonging to this house are returned.</param>
+    /// <param name="deviceType">
+    /// When given (e.g. "Telemetry", "Heating"), only devices of that type
+    /// are returned. For the "Telemetry" type, each device also carries a
+    /// freshly generated current reading (value/unit/status) - a different
+    /// value on every call. See Task 5 ("Get All Sensors").
+    /// </param>
     /// <response code="200">The (possibly empty) list of matching devices.</response>
-    // GET /api/v1/devices?houseId=...
+    // GET /api/v1/devices?houseId=...&deviceType=...
     [HttpGet]
     [ProducesResponseType(typeof(List<DeviceResponse>), StatusCodes.Status200OK)]
     [SwaggerResponseExample(StatusCodes.Status200OK, typeof(DeviceListResponseExample))]
-    public async Task<ActionResult<List<DeviceResponse>>> GetAll([FromQuery] Guid? houseId, CancellationToken ct)
+    public async Task<ActionResult<List<DeviceResponse>>> GetAll([FromQuery] Guid? houseId, [FromQuery] string? deviceType, CancellationToken ct)
     {
-        var devices = await _commandHandler.GetDevicesAsync(houseId, ct);
-        return Ok(devices.Select(DeviceResponse.From));
+        var devices = await _commandHandler.GetDevicesAsync(houseId, deviceType, ct);
+        return Ok(devices);
     }
 
     /// <summary>Gets one device by id.</summary>

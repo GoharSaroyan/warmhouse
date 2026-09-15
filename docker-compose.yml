@@ -256,6 +256,27 @@ services:
     networks:
       - smarthome-network
 
+  smoke-test:
+    build:
+      context: ./test
+      dockerfile: Dockerfile
+    container_name: smoke-test
+    depends_on:
+      - api-gateway
+      - device-gateway
+    environment:
+      # Reached over the docker network, not localhost - this container is
+      # not the host machine.
+      - GATEWAY_URL=http://api-gateway:5000
+      # Generous timeouts: on a cold `docker-compose up --build`, every
+      # service is still starting/connecting to postgres and rabbitmq when
+      # this container starts.
+      - READY_TIMEOUT=180
+      - EVENT_TIMEOUT=60
+    restart: "no"
+    networks:
+      - smarthome-network
+
 volumes:
   postgres_data:
 

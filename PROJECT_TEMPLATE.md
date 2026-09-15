@@ -363,3 +363,52 @@ To verify, you can use the Postman collection
 A different temperature value should be shown on every call.
 
 The reviewer will check it the exact same way.
+
+## What we actually built
+
+`smarthome-api.postman_collection.json` has been removed - it hit the old
+monolith's flat sensor endpoints (`localhost:8080/api/v1/sensors`), which
+no longer exist, so keeping it around would just mislead whoever opened
+it. Verification against the requests above ("Create Sensor", "Get All
+Sensors", a different value on every call) is now [test/smoke-test.sh](test/smoke-test.sh),
+described below.
+
+No standalone `temperature-api` container exists in this system - the
+monolith (and its `temperature-api` companion) was replaced outright by
+the microservices from Tasks 2-4, so "Create Sensor" / "Get All Sensors"
+map onto the **Device Management** service's existing device catalog
+instead of a copy of the old sensor CRUD:
+
+- **Create Sensor** &rarr; `POST /api/v1/devices`, creating a device
+  against the seeded `Telemetry` device type/module (see
+  [db/init.sql](db/init.sql)).
+- **Get All Sensors** &rarr; `GET /api/v1/devices?deviceType=Telemetry`.
+  For devices of this type, `CommandHandler` generates a fresh simulated
+  reading (value/unit/status) in-process on every call - no second
+  container or HTTP hop, just the same "different value every call"
+  contract the task asks for.
+
+**Postgres** is the same `postgres` service every other microservice
+already shares in `docker-compose.yml`, initialized by
+[db/init.sql](db/init.sql) (one script, one database per service,
+including the `device_management` database this task's data lives in).
+
+**Smoke test.** [test/smoke-test.sh](test/smoke-test.sh) runs
+automatically as its own `smoke-test` container in `docker-compose.yml`
+right after the rest of the stack starts (it depends on `api-gateway` and
+`device-gateway`, and polls the gateway's `/health` until the whole chain
+is actually ready rather than assuming a fixed startup time). It exercises,
+end to end, over real HTTP/RabbitMQ - not mocks:
+
+1. Identity - create a user and a house.
+2. **Create Sensor** and **Get All Sensors**, asserting the generated
+   value differs between two consecutive calls.
+3. Asynchronous pub/sub scoped by `houseId`: it sets a desired Heating
+   state, waits for `HeatingCommandRequested` to travel over RabbitMQ to
+   the Device Gateway and come back as `DeviceStateChanged`, and confirms
+   Monitoring's live state lands under the correct house - and is absent
+   under a different one.
+
+The container exits non-zero if any check fails, so it doubles as a CI
+gate; `docker compose up --build` plus `docker logs smoke-test` is enough
+to prove the whole system works, not just that it compiles.

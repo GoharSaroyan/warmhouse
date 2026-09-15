@@ -9,19 +9,37 @@ public class DeviceRepository : IDeviceRepository
 
     public DeviceRepository(NpgsqlDataSource dataSource) => _dataSource = dataSource;
 
-    public async Task<List<Device>> GetAllAsync(Guid? houseId, CancellationToken ct = default)
+    public async Task<List<Device>> GetAllAsync(Guid? houseId, Guid? deviceTypeId, CancellationToken ct = default)
     {
-        var sql = "SELECT id, module_id, house_id, serial_number, status, installed_at FROM devices";
+        var sql = "SELECT d.id, d.module_id, d.house_id, d.serial_number, d.status, d.installed_at FROM devices d";
+        if (deviceTypeId is not null)
+        {
+            sql += " JOIN modules m ON m.id = d.module_id";
+        }
+
+        var conditions = new List<string>();
         if (houseId is not null)
         {
-            sql += " WHERE house_id = @houseId";
+            conditions.Add("d.house_id = @houseId");
         }
-        sql += " ORDER BY installed_at DESC";
+        if (deviceTypeId is not null)
+        {
+            conditions.Add("m.device_type_id = @deviceTypeId");
+        }
+        if (conditions.Count > 0)
+        {
+            sql += " WHERE " + string.Join(" AND ", conditions);
+        }
+        sql += " ORDER BY d.installed_at DESC";
 
         await using var cmd = _dataSource.CreateCommand(sql);
         if (houseId is not null)
         {
             cmd.Parameters.AddWithValue("houseId", houseId.Value);
+        }
+        if (deviceTypeId is not null)
+        {
+            cmd.Parameters.AddWithValue("deviceTypeId", deviceTypeId.Value);
         }
 
         await using var reader = await cmd.ExecuteReaderAsync(ct);
