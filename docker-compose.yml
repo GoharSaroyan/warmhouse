@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      # init.sql creates the smarthome database itself, so POSTGRES_DB is
+      # init.sql creates each service's database itself, so POSTGRES_DB is
       # deliberately left unset here - otherwise CREATE DATABASE would fail
       # against a database Postgres already created for us.
     volumes:
@@ -22,36 +22,258 @@ services:
     networks:
       - smarthome-network
 
-  temperature-api:
-    build:
-      context: ./src/TemperatureApi
-      dockerfile: Dockerfile
-    container_name: temperature-api
+  # ===========================================================================
+  # Target microservice architecture (docs/c4/container-to-be.puml). Each
+  # service below owns its own database in the same Postgres instance
+  # (schemas created by db/init.sql) and is reached only through the
+  # api-gateway - see src/Gateway/appsettings.json for the route mapping.
+  # ===========================================================================
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
     environment:
-      - PORT=8081
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
     ports:
-      - "8081:8081"
+      - "5672:5672"
+      # Management UI - http://localhost:15672 (guest/guest)
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
     restart: unless-stopped
     networks:
       - smarthome-network
 
-  app:
+  device-management:
     build:
-      context: ./src/SmartHome.Api
-      dockerfile: Dockerfile
-    container_name: smarthome-app
+      context: .
+      dockerfile: src/Services/DeviceManagement/Dockerfile
+    container_name: device-management
     depends_on:
       postgres:
         condition: service_healthy
-      temperature-api:
-        condition: service_started
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/smarthome
-      - TEMPERATURE_API_URL=http://temperature-api:8081
-      - PORT=8080
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/device_management
+      - PORT=5001
     ports:
-      - "8080:8080"
+      - "5001:5001"
     restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  heating:
+    build:
+      context: .
+      dockerfile: src/Services/Heating/Dockerfile
+    container_name: heating
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/heating
+      - PORT=5002
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    ports:
+      - "5002:5002"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  lighting:
+    build:
+      context: .
+      dockerfile: src/Services/Lighting/Dockerfile
+    container_name: lighting
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/lighting
+      - PORT=5003
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    ports:
+      - "5003:5003"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  access-control:
+    build:
+      context: .
+      dockerfile: src/Services/AccessControl/Dockerfile
+    container_name: access-control
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/access_control
+      - PORT=5004
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    ports:
+      - "5004:5004"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  monitoring:
+    build:
+      context: .
+      dockerfile: src/Services/Monitoring/Dockerfile
+    container_name: monitoring
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/monitoring
+      - PORT=5005
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    ports:
+      - "5005:5005"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  device-gateway:
+    build:
+      context: .
+      dockerfile: src/Services/DeviceGateway/Dockerfile
+    container_name: device-gateway
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - PORT=5009
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    ports:
+      - "5009:5009"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  telemetry:
+    build:
+      context: .
+      dockerfile: src/Services/Telemetry/Dockerfile
+    container_name: telemetry
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/telemetry
+      - PORT=5006
+    ports:
+      - "5006:5006"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  identity:
+    build:
+      context: .
+      dockerfile: src/Services/Identity/Dockerfile
+    container_name: identity
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/identity
+      - PORT=5007
+    ports:
+      - "5007:5007"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  billing:
+    build:
+      context: .
+      dockerfile: src/Services/Billing/Dockerfile
+    container_name: billing
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/billing
+      - PORT=5008
+    ports:
+      - "5008:5008"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  api-gateway:
+    build:
+      context: ./src/Gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    depends_on:
+      - device-management
+      - heating
+      - lighting
+      - access-control
+      - monitoring
+      - telemetry
+      - identity
+      - billing
+    environment:
+      - PORT=5000
+      # Overrides appsettings.json's localhost defaults with docker-compose
+      # service hostnames (YARP config bound from env vars via "__").
+      - ReverseProxy__Clusters__devices-cluster__Destinations__destination1__Address=http://device-management:5001
+      - ReverseProxy__Clusters__heating-cluster__Destinations__destination1__Address=http://heating:5002
+      - ReverseProxy__Clusters__lighting-cluster__Destinations__destination1__Address=http://lighting:5003
+      - ReverseProxy__Clusters__access-cluster__Destinations__destination1__Address=http://access-control:5004
+      - ReverseProxy__Clusters__monitoring-cluster__Destinations__destination1__Address=http://monitoring:5005
+      - ReverseProxy__Clusters__telemetry-cluster__Destinations__destination1__Address=http://telemetry:5006
+      - ReverseProxy__Clusters__identity-cluster__Destinations__destination1__Address=http://identity:5007
+      - ReverseProxy__Clusters__billing-cluster__Destinations__destination1__Address=http://billing:5008
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  smoke-test:
+    build:
+      context: ./test
+      dockerfile: Dockerfile
+    container_name: smoke-test
+    depends_on:
+      - api-gateway
+      - device-gateway
+    environment:
+      # Reached over the docker network, not localhost - this container is
+      # not the host machine.
+      - GATEWAY_URL=http://api-gateway:5000
+      # Generous timeouts: on a cold `docker-compose up --build`, every
+      # service is still starting/connecting to postgres and rabbitmq when
+      # this container starts.
+      - READY_TIMEOUT=180
+      - EVENT_TIMEOUT=60
+    restart: "no"
     networks:
       - smarthome-network
 

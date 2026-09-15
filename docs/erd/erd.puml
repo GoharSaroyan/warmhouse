@@ -1,0 +1,141 @@
+@startuml erd
+title ER diagram - WarmHouse target data model (logical, cross-service)
+
+entity "User" as user {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  email : varchar
+  password_hash : varchar
+  created_at : timestamp
+}
+
+entity "House" as house {
+  * id : uuid <<PK>>
+  --
+  # user_id : uuid <<FK>>
+  address : varchar
+  created_at : timestamp
+}
+
+entity "DeviceType" as deviceType {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  unit : varchar
+  description : varchar
+}
+
+entity "Module" as module {
+  * id : uuid <<PK>>
+  --
+  # device_type_id : uuid <<FK>>
+  name : varchar
+  manufacturer : varchar
+  protocol : varchar
+  price : decimal
+}
+
+entity "Device" as device {
+  * id : uuid <<PK>>
+  --
+  # module_id : uuid <<FK>>
+  # house_id : uuid <<FK>>
+  serial_number : varchar
+  status : varchar
+  installed_at : timestamp
+}
+
+' DeviceState is not one shared table - each control service owns its
+' own copy, keyed directly by device_id (no separate id column), in its
+' own database. Shown as three entities to match reality.
+
+entity "HeatingState" as heatingState {
+  * device_id : uuid <<PK, FK>>
+  --
+  desired_value : varchar
+  actual_value : varchar
+  updated_at : timestamp
+}
+
+entity "LightingState" as lightingState {
+  * device_id : uuid <<PK, FK>>
+  --
+  desired_value : varchar
+  actual_value : varchar
+  updated_at : timestamp
+}
+
+entity "AccessState" as accessState {
+  * device_id : uuid <<PK, FK>>
+  --
+  desired_value : varchar
+  actual_value : varchar
+  updated_at : timestamp
+}
+
+entity "AccessAuditLog" as accessAuditLog {
+  * id : uuid <<PK>>
+  --
+  # device_id : uuid <<FK>>
+  action : varchar
+  actor : varchar
+  occurred_at : timestamp
+}
+
+entity "LiveState" as liveState {
+  * device_id : uuid <<PK, FK>>
+  --
+  # house_id : uuid <<FK>>
+  value : varchar
+  status : varchar
+  updated_at : timestamp
+}
+
+entity "TelemetryData" as telemetry {
+  * id : uuid <<PK>>
+  --
+  # device_id : uuid <<FK>>
+  metric : varchar
+  value : double
+  unit : varchar
+  measured_at : timestamp
+  received_at : timestamp
+}
+
+entity "ThresholdRule" as thresholdRule {
+  * id : uuid <<PK>>
+  --
+  # house_id : uuid <<FK>>
+  # device_id : uuid <<FK, nullable>>
+  metric : varchar
+  operator : varchar
+  value : double
+}
+
+entity "Subscription" as subscription {
+  * id : uuid <<PK>>
+  --
+  # user_id : uuid <<FK>>
+  plan : varchar
+  status : varchar
+  start_date : timestamp
+  end_date : timestamp
+}
+
+user ||--o{ house : "one user has many houses,\neach house has one user"
+house ||--o{ device : "one house has many devices,\neach device belongs to one house"
+deviceType ||--o{ module : "one type has many module products"
+module ||--o{ device : "one module is installed as many devices"
+device ||--o| heatingState : "one device has one heating state (if it's a heating device)"
+device ||--o| lightingState : "one device has one lighting state (if it's a lighting device)"
+device ||--o| accessState : "one device has one access state (if it's a gate device)"
+device ||--o{ accessAuditLog : "one gate device has many audit entries"
+device ||--o| liveState : "one device has one current live-view state"
+house ||--o{ liveState : "one house has many devices' live states"
+device ||--o{ telemetry : "one device generates many telemetry records"
+house ||--o{ thresholdRule : "one house has many threshold rules"
+device |o--o{ thresholdRule : "a rule may be scoped to one device,\nor to null (whole house)"
+user ||--o{ subscription : "one user has many subscriptions over time"
+
+@enduml

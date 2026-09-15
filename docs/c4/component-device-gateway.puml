@@ -1,0 +1,50 @@
+@startuml component-device-gateway
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_TOP_DOWN()
+
+ContainerQueue(broker, "Message Broker", "RabbitMQ")
+Container(heatingSvc, "Heating Control Service", "Microservice")
+Container(lightingSvc, "Lighting Control Service", "Microservice")
+Container(accessSvc, "Access Control Service", "Microservice")
+Container(monitoringSvc, "Monitoring Service", "Microservice")
+System_Ext(devices, "Physical/Partner Devices", "Heating, lighting and gate hardware")
+
+Container_Boundary(gateway, "Device Gateway") {
+  Component(heatingConsumer, "HeatingCommandRequestedConsumer", "MassTransit consumer", "Consumes HeatingCommandRequested; delivers it, then publishes HeatingCommandCompleted and DeviceStateChanged")
+  Component(lightingConsumer, "LightingCommandRequestedConsumer", "MassTransit consumer", "Consumes LightingCommandRequested; delivers it, then publishes LightingCommandCompleted and DeviceStateChanged")
+  Component(accessConsumer, "AccessCommandRequestedConsumer", "MassTransit consumer", "Consumes AccessCommandRequested; delivers it, then publishes AccessCommandCompleted and DeviceStateChanged")
+}
+
+Rel(heatingSvc, broker, "Publishes HeatingCommandRequested", "async, pub/sub")
+Rel(lightingSvc, broker, "Publishes LightingCommandRequested", "async, pub/sub")
+Rel(accessSvc, broker, "Publishes AccessCommandRequested", "async, pub/sub")
+
+Rel(broker, heatingConsumer, "Delivers HeatingCommandRequested", "async, pub/sub")
+Rel(broker, lightingConsumer, "Delivers LightingCommandRequested", "async, pub/sub")
+Rel(broker, accessConsumer, "Delivers AccessCommandRequested", "async, pub/sub")
+
+Rel(heatingConsumer, devices, "Delivers command to (simulated today)")
+Rel(lightingConsumer, devices, "Delivers command to (simulated today)")
+Rel(accessConsumer, devices, "Delivers command to (simulated today)")
+
+Rel(heatingConsumer, broker, "Publishes HeatingCommandCompleted, DeviceStateChanged", "async, pub/sub")
+Rel(lightingConsumer, broker, "Publishes LightingCommandCompleted, DeviceStateChanged", "async, pub/sub")
+Rel(accessConsumer, broker, "Publishes AccessCommandCompleted, DeviceStateChanged", "async, pub/sub")
+
+Rel(broker, heatingSvc, "Delivers HeatingCommandCompleted", "async, pub/sub")
+Rel(broker, lightingSvc, "Delivers LightingCommandCompleted", "async, pub/sub")
+Rel(broker, accessSvc, "Delivers AccessCommandCompleted", "async, pub/sub")
+Rel(broker, monitoringSvc, "Delivers DeviceStateChanged", "async, pub/sub")
+
+note bottom of gateway
+  Stateless - no database of its own. Each consumer is the only code in
+  the platform that talks to physical/partner hardware.
+
+  TODO: replace the simulated delivery in each consumer with a real
+  call over the device's standard protocol (MQTT, etc.) once real
+  devices exist to talk to.
+end note
+
+SHOW_LEGEND()
+@enduml

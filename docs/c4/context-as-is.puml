@@ -1,0 +1,27 @@
+@startuml context-as-is
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_TOP_DOWN()
+
+Person(homeowner, "Homeowner", "Wants to monitor home temperature and control heating remotely")
+Person(technician, "Installation Technician", "Installs and wires the in-home sensor hardware")
+
+System(warmhouse, "WarmHouse Application", "Monolith backed by PostgreSQL. Exposes a REST API for sensor and heating management")
+
+System_Ext(sensorHardware, "In-Home Temperature Sensor", "Physical hardware device installed in the homeowner's house")
+
+Rel(homeowner, warmhouse, "Views current temperature (Monitoring), sends heating commands", "HTTPS/REST")
+Rel(warmhouse, sensorHardware, "Polls current temperature reading", "HTTP, synchronous")
+Rel(technician, sensorHardware, "Installs and connects to the home's network")
+
+note right of warmhouse
+  Key constraints of this architecture:
+  * Single deployable monolith - no independent scaling or deployment per capability
+  * Fully synchronous - every call, including the sensor poll, blocks the request
+  * Control flows one way only: server -> sensor
+  * No self-service onboarding - a technician must physically install and wire each sensor
+  * No Telemetry (historical aggregation/reports) - only the live reading is exposed
+end note
+
+SHOW_LEGEND()
+@enduml

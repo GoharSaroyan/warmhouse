@@ -1,0 +1,86 @@
+@startuml container-to-be
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_TOP_DOWN()
+
+Person(homeowner, "Homeowner", "Self-service SaaS customer")
+
+System_Ext(ownDevices, "WarmHouse Device Modules", "Heating, lighting, access-control and telemetry modules sold by the company")
+System_Ext(partnerDevices, "Partner Devices", "Third-party smart-home devices over standard IoT protocols")
+System_Ext(paymentProvider, "Payment Provider", "External payment gateway")
+
+System_Boundary(platform, "WarmHouse Smart Home Platform") {
+
+  Container(webClient, "Web/Mobile Client", "SPA / mobile app", "Lets the homeowner manage devices, scenarios, telemetry and billing")
+  Container(apiGateway, "API Gateway", "YARP", "Single entry point; routes requests, terminates auth")
+
+  Container(deviceMgmt, "Device Management Service", "Microservice", "Device catalog, self-service onboarding, ownership")
+  ContainerDb(deviceMgmtDb, "Device Management DB", "PostgreSQL", "Devices, ownership, protocol config")
+
+  Container(heating, "Heating Control Service", "Microservice", "Turns heating on/off, tracks desired/actual state per room")
+  ContainerDb(heatingDb, "Heating DB", "PostgreSQL", "Heating state per room")
+
+  Container(lighting, "Lighting Control Service", "Microservice", "Turns lights on/off per room")
+  ContainerDb(lightingDb, "Lighting DB", "PostgreSQL", "Lighting state per room")
+
+  Container(access, "Access Control Service", "Microservice", "Locks/unlocks gates, audit trail")
+  ContainerDb(accessDb, "Access Control DB", "PostgreSQL", "Gate state, access audit log")
+
+  Container(monitoring, "Monitoring Service", "Microservice", "Current/live device state for homeowner viewing")
+  ContainerDb(monitoringCache, "Monitoring Cache", "Redis", "Latest known state per device")
+
+  Container(telemetry, "Telemetry Service", "Microservice", "Ingests, stores and aggregates historical device data; produces reports")
+  ContainerDb(telemetryDb, "Telemetry DB", "PostgreSQL", "telemetry_points, threshold_rules - historical readings and aggregates")
+
+  Container(identity, "User Identity Service", "Microservice", "Homeowner accounts, authentication, home/tenant membership")
+  ContainerDb(identityDb, "Identity DB", "PostgreSQL", "Users, homes, credentials")
+
+  Container(billing, "Billing Service", "Microservice", "Subscriptions, module purchases, entitlements")
+  ContainerDb(billingDb, "Billing DB", "PostgreSQL", "Subscriptions, invoices, entitlements")
+
+  Container(deviceGateway, "Device Gateway", "Protocol adapter service", "Receives telemetry/state from device modules and partner devices; relays commands out to them")
+  ContainerQueue(broker, "Message Broker", "RabbitMQ", "Carries device commands (control services -> Device Gateway) and telemetry/state/ack events (Device Gateway -> consumers); decouples every service from direct device communication")
+}
+
+Rel(homeowner, webClient, "Uses", "HTTPS")
+Rel(webClient, apiGateway, "Makes API calls to", "HTTPS/REST, JSON")
+
+Rel(apiGateway, deviceMgmt, "Routes device CRUD / onboarding requests", "REST")
+Rel(apiGateway, heating, "Routes heating commands/queries", "REST")
+Rel(apiGateway, lighting, "Routes lighting commands/queries", "REST")
+Rel(apiGateway, access, "Routes gate commands/queries", "REST")
+Rel(apiGateway, monitoring, "Routes live-state queries", "REST")
+Rel(apiGateway, telemetry, "Routes report/history queries", "REST")
+Rel(apiGateway, identity, "Routes auth/account requests", "REST")
+Rel(apiGateway, billing, "Routes subscription/purchase requests", "REST")
+
+Rel(deviceMgmt, deviceMgmtDb, "Reads/writes", "SQL")
+Rel(heating, heatingDb, "Reads/writes", "SQL")
+Rel(lighting, lightingDb, "Reads/writes", "SQL")
+Rel(access, accessDb, "Reads/writes", "SQL")
+Rel(monitoring, monitoringCache, "Reads/writes latest state", "Redis protocol")
+Rel(telemetry, telemetryDb, "Reads/writes aggregates", "SQL")
+Rel(identity, identityDb, "Reads/writes", "SQL")
+Rel(billing, billingDb, "Reads/writes", "SQL")
+
+Rel(deviceMgmt, deviceGateway, "Registers new device / protocol config with", "REST")
+
+Rel(heating, broker, "Publishes heating commands", "async, pub/sub")
+Rel(lighting, broker, "Publishes lighting commands", "async, pub/sub")
+Rel(access, broker, "Publishes gate commands", "async, pub/sub")
+Rel(broker, deviceGateway, "Delivers device commands to", "async, pub/sub")
+
+Rel(deviceGateway, ownDevices, "Sends commands to / receives telemetry from", "Internet, standard protocol")
+Rel(deviceGateway, partnerDevices, "Sends commands to / receives telemetry from", "Internet, standard protocol")
+
+Rel(deviceGateway, broker, "Publishes device telemetry and command-ack / state-change events", "async, pub/sub")
+Rel(broker, monitoring, "Consumes live state-change events", "async, pub/sub")
+Rel(broker, telemetry, "Consumes telemetry events for aggregation", "async, pub/sub")
+Rel(broker, heating, "Consumes command-ack / state-change events", "async, pub/sub")
+Rel(broker, lighting, "Consumes command-ack / state-change events", "async, pub/sub")
+Rel(broker, access, "Consumes command-ack / state-change events", "async, pub/sub")
+
+Rel(billing, paymentProvider, "Charges via", "HTTPS/REST")
+
+SHOW_LEGEND()
+@enduml
